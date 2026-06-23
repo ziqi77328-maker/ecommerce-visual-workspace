@@ -1,0 +1,11 @@
+.DS_Store
+Thumbs.db
+__MACOSX/
+*.tmp
+*.bak
+*.swp
+
+# Local generated previews and exports
+outputs/
+exports/
+preview/

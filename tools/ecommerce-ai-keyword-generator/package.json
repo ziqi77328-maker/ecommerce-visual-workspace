@@ -1,0 +1,18 @@
+{
+  "name": "ecommerce-ai-keyword-generator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "团队可访问的电商AI关键词生成器静态网页",
+  "scripts": {
+    "dev": "python3 -m http.server 8765",
+    "build": "node -e \"const fs=require('fs'); JSON.parse(fs.readFileSync('data/keywords.json','utf8')); new Function(fs.readFileSync('script.js','utf8')); console.log('static build check passed');\"",
+    "start": "python3 -m http.server 8765"
+  },
+  "keywords": [
+    "ecommerce",
+    "keyword-generator",
+    "static-site",
+    "vercel"
+  ],
+  "license": "UNLICENSED"
+}

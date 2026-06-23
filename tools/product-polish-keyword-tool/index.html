@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>产品图精修关键词匹配器</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>产品图精修关键词匹配器</h1>
+          <p>已接入仓库图片规则：场景、材质、光影、真实约束和 AI 感降低；不接入排版、价格和卖点卡。</p>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost-button" id="loadCookerCase" type="button">套用电饭煲案例</button>
+          <button class="ghost-button" id="resetAll" type="button">清空</button>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <form class="panel input-panel" id="polishForm">
+          <div class="panel-head">
+            <h2>输入与选择</h2>
+            <span class="status-pill">仓库图片规则</span>
+          </div>
+
+          <div class="field-grid">
+            <label>
+              产品类目
+              <select name="category">
+                <option value="">请选择</option>
+                <option value="电饭煲">电饭煲</option>
+                <option value="电火锅 / 电煮锅">电火锅 / 电煮锅</option>
+                <option value="电压力锅">电压力锅</option>
+                <option value="微波炉 / 微烤炸一体机">微波炉 / 微烤炸一体机</option>
+                <option value="破壁机 / 豆浆机">破壁机 / 豆浆机</option>
+                <option value="空气炸锅">空气炸锅</option>
+                <option value="电热水壶 / 养生壶">电热水壶 / 养生壶</option>
+                <option value="电磁炉 / 电陶炉">电磁炉 / 电陶炉</option>
+                <option value="蒸锅 / 蒸烤箱">蒸锅 / 蒸烤箱</option>
+                <option value="其他厨房小家电">其他厨房小家电</option>
+              </select>
+            </label>
+            <label>
+              自定义类目
+              <input name="categoryCustom" placeholder="如：多功能料理锅" />
+            </label>
+          </div>
+
+          <label class="wide-field">
+            产品真实外观锁定
+            <textarea name="appearance" rows="4" placeholder="写清颜色、材质、Logo位置、控制面板、旋钮、把手、锅盖、杯体、门体、配件等，避免 AI 改款。"></textarea>
+          </label>
+
+          <div class="wide-field image-upload-block">
+            <div class="upload-head">
+              <label for="referenceImages">上传参考图</label>
+              <span id="imageCount">0 / 6</span>
+            </div>
+            <input id="referenceImages" name="referenceImages" type="file" accept="image/*" multiple />
+            <p>最多 6 张。只做本地预览，用来提醒产品外观和参考方向，不会上传。</p>
+            <div class="image-preview-grid" id="imagePreviewGrid"></div>
+          </div>
+
+          <section class="wide-field option-section">
+            <div class="section-head">
+              <h3>优化目标</h3>
+              <button class="mini-button" type="button" data-select-group="goals">全选基础精修</button>
+            </div>
+            <div class="chip-grid" id="goalGroup">
+              <label><input type="checkbox" name="goals" value="去灰提亮，压住脏灰和暗沉，让产品白场更干净" />去灰提亮</label>
+              <label><input type="checkbox" name="goals" value="增强产品边缘清晰度，轮廓不糊、不融入背景" />增强边缘</label>
+              <label><input type="checkbox" name="goals" value="强化真实接触阴影，产品稳稳落在台面或地面上" />接触阴影</label>
+              <label><input type="checkbox" name="goals" value="增加柔和轮廓光，托出产品外形但不过曝" />轮廓光</label>
+              <label><input type="checkbox" name="goals" value="修正轻微透视问题，保持产品比例真实自然" />修正透视</label>
+              <label><input type="checkbox" name="goals" value="增强玻璃透明感和真实反射，不变灰、不发雾" />玻璃透明感</label>
+              <label><input type="checkbox" name="goals" value="增强金属反射和拉丝层次，高光清楚但不过度锐化" />金属反射</label>
+              <label><input type="checkbox" name="goals" value="增强塑料高级感，减少廉价塑料感和脏色块" />塑料高级感</label>
+              <label><input type="checkbox" name="goals" value="提升控制面板、数显屏、按键和 Logo 的清晰度" />面板清晰</label>
+              <label><input type="checkbox" name="goals" value="统一产品明暗关系，保留暗部层次，不做死白" />明暗层次</label>
+              <label><input type="checkbox" name="goals" value="清理边缘毛边、抠图白边和半透明脏边" />边缘清理</label>
+              <label><input type="checkbox" name="goals" value="增加商业摄影级柔和扫光，让产品更亮眼" />商业扫光</label>
+            </div>
+            <input class="custom-input" name="goalsCustom" placeholder="其他优化目标，可手动填写" />
+          </section>
+
+          <section class="wide-field option-section">
+            <div class="section-head">
+              <h3>产品材质</h3>
+              <button class="mini-button" type="button" data-clear-group="materials">清空材质</button>
+            </div>
+            <div class="chip-grid" id="materialGroup">
+              <label><input type="checkbox" name="materials" value="透明玻璃：玻璃边缘高光清楚，内部结构可见，反射真实，不发灰不雾化" />透明玻璃</label>
+              <label><input type="checkbox" name="materials" value="透明杯体：杯壁厚度、刻度、把手和杯口结构清晰，液体不遮挡关键结构" />透明杯体</label>
+              <label><input type="checkbox" name="materials" value="金属拉丝：横向或竖向拉丝纹理可见，高光顺着机身弧面过渡" />金属拉丝</label>
+              <label><input type="checkbox" name="materials" value="不锈钢内胆：内胆弧面反射真实，口沿厚度清楚，不变成普通碗盆" />不锈钢内胆</label>
+              <label><input type="checkbox" name="materials" value="亮面塑料：表面干净有柔和反射，不做油腻高光" />亮面塑料</label>
+              <label><input type="checkbox" name="materials" value="哑光塑料：细腻微磨砂质感，暗部干净，边缘有轻微高光" />哑光塑料</label>
+              <label><input type="checkbox" name="materials" value="黑色镜面：镜面反射可控，保留黑色深度，增加白色边缘光防止融入背景" />黑色镜面</label>
+              <label><input type="checkbox" name="materials" value="白色家电：白色机身保持干净，避免发灰发黄，暗部有层次" />白色家电</label>
+              <label><input type="checkbox" name="materials" value="银色机身：银灰过渡自然，金属亮部和暗部都保留细节" />银色机身</label>
+              <label><input type="checkbox" name="materials" value="数显面板：屏幕数字和功能图标清楚，面板反光不遮挡文字" />数显面板</label>
+              <label><input type="checkbox" name="materials" value="玻璃锅盖：锅盖透明度真实，盖沿、提手和反光高光清楚" />玻璃锅盖</label>
+              <label><input type="checkbox" name="materials" value="陶瓷涂层：内壁干净细腻，柔和反射，不做金属质感" />陶瓷涂层</label>
+            </div>
+            <input class="custom-input" name="materialsCustom" placeholder="其他材质，可手动填写" />
+          </section>
+
+          <section class="wide-field option-section">
+            <h3>背景风格</h3>
+            <div class="radio-grid">
+              <label><input type="radio" name="background" value="简洁" checked />简洁</label>
+              <label><input type="radio" name="background" value="厨房" />厨房</label>
+              <label><input type="radio" name="background" value="生活" />生活</label>
+              <label><input type="radio" name="background" value="科技" />科技</label>
+              <label><input type="radio" name="background" value="黑金" />黑金</label>
+              <label><input type="radio" name="background" value="清新" />清新</label>
+              <label><input type="radio" name="background" value="浅灰棚拍" />浅灰棚拍</label>
+              <label><input type="radio" name="background" value="奶油原木" />奶油原木</label>
+              <label><input type="radio" name="background" value="深色高端棚拍" />深色高端棚拍</label>
+            </div>
+            <input class="custom-input" name="backgroundCustom" placeholder="其他背景风格，可手动填写" />
+          </section>
+
+          <section class="wide-field option-section">
+            <h3>产品与背景关系</h3>
+            <div class="chip-grid">
+              <label><input type="checkbox" name="relations" value="产品真实落在台面上，有清晰但柔和的接触阴影" />落在台面上</label>
+              <label><input type="checkbox" name="relations" value="产品背后有椭圆柔光区，托亮主体轮廓" />背后椭圆柔光</label>
+              <label><input type="checkbox" name="relations" value="产品边缘有淡淡白色高光线，增强外形识别" />白色边缘高光</label>
+              <label><input type="checkbox" name="relations" value="产品与背景颜色有呼应，背景不抢主体" />颜色呼应</label>
+              <label><input type="checkbox" name="relations" value="台面有轻微反射，反射弱于产品本体" />台面轻反射</label>
+              <label><input type="checkbox" name="relations" value="背景轻微虚化，主体极致清晰，前实后虚" />背景虚化</label>
+              <label><input type="checkbox" name="relations" value="光从左上方或侧后方进入，形成自然商业摄影光影" />自然侧光</label>
+              <label><input type="checkbox" name="relations" value="背景元素低对比弱化，只提供环境感" />背景弱化</label>
+              <label><input type="checkbox" name="relations" value="产品周围保留干净呼吸空间，方便后续继续设计" />保留呼吸空间</label>
+              <label><input type="checkbox" name="relations" value="产品底部阴影方向和背景光源方向一致" />光影一致</label>
+            </div>
+            <input class="custom-input" name="relationsCustom" placeholder="其他产品与背景关系，可手动填写" />
+          </section>
+
+          <div class="field-grid wide-field">
+            <label>
+              产品角度
+              <select name="angle">
+                <option value="原角度不变，只优化光影、清晰度和背景融合">原角度不变</option>
+                <option value="正面机位，轻微俯视，适合控制面板和正面 Logo 展示">正面机位</option>
+                <option value="右上角机位，三分之二俯视，适合电饭煲、锅类、破壁机">右上角机位</option>
+                <option value="左上角机位，三分之二俯视，适合需要露出右侧控制区的产品">左上角机位</option>
+                <option value="俯拍机位，突出锅内食物、内胆、杯体内容物">俯拍机位</option>
+                <option value="低机位轻仰视，增强产品体积感和高端感">低机位轻仰视</option>
+                <option value="45度斜侧机位，兼顾正面和侧面结构">45度斜侧机位</option>
+                <option value="平视正侧机位，适合微波炉、横向长条产品">平视正侧机位</option>
+              </select>
+            </label>
+            <label>
+              自定义角度
+              <input name="angleCustom" placeholder="如：保持当前透视，稍微转向右侧" />
+            </label>
+          </div>
+
+          <section class="wide-field option-section">
+            <h3>产品状态</h3>
+            <div class="chip-grid">
+              <label><input type="checkbox" name="states" value="产品原本状态不变，不添加内容物，不改变开合状态" />原状态不变</label>
+              <label><input type="checkbox" name="states" value="开盖展示，锅体上方不自动生成玻璃锅盖、不加锅盖，锅内食材直接可见，保持像参考图一样的开放式展示" />开盖展示</label>
+              <label><input type="checkbox" name="states" value="电饭煲内加入米饭，米粒真实饱满，热气轻微，不遮挡锅体结构">产品内加入米饭</label>
+              <label><input type="checkbox" name="states" value="锅类产品内加入食物或汤品，食材低于锅沿，不遮挡锅身、把手和 Logo">产品内加入食物</label>
+              <label><input type="checkbox" name="states" value="火锅食材分区摆放，玉米、肥牛、菌菇、蔬菜、豆腐、虾仁彼此清楚分离，颜色鲜亮但真实，不糊成一锅汤">火锅食材分区</label>
+              <label><input type="checkbox" name="states" value="破壁机或豆浆机杯内加入果汁，液体透明自然，不遮挡刻度和刀头区域">产品内加入果汁</label>
+              <label><input type="checkbox" name="states" value="破壁机或豆浆机杯内加入水果块，水果数量克制，杯体结构仍清楚">产品内加入水果</label>
+              <label><input type="checkbox" name="states" value="微波炉门内有暖黄色加热光，隐约可见食物，不开门不改结构">门内加热食物</label>
+              <label><input type="checkbox" name="states" value="电水壶或养生壶内加入清水或养生茶，玻璃通透，水位自然">壶内加入水/茶</label>
+              <label><input type="checkbox" name="states" value="空气炸锅抽屉轻微打开，露出食物但不改变产品主体结构">抽屉轻微打开</label>
+              <label><input type="checkbox" name="states" value="展示内胆或配件在产品旁边，配件小于主产品，不抢主体">旁边展示配件</label>
+            </div>
+            <input class="custom-input" name="stateCustom" placeholder="其他状态，可手动填写，如：锅内放少量火锅食材，保持干净高级" />
+          </section>
+
+          <div class="field-grid wide-field">
+            <label>
+              是否需要配件
+              <select name="accessory">
+                <option value="不需要配件，只保留产品主体">不需要</option>
+                <option value="需要少量真实配件，放在产品旁边或前景，整体小于主产品">需要少量配件</option>
+                <option value="需要内胆/锅盖/量杯/刀头等功能证据配件，但不能改造成卖点卡">需要功能配件</option>
+                <option value="需要食材或餐具作为氛围道具，低对比弱化处理">需要氛围道具</option>
+              </select>
+            </label>
+            <label>
+              配件说明
+              <input name="accessoryCustom" placeholder="如：木勺、米饭碗、内胆，放右下前景" />
+            </label>
+          </div>
+
+          <section class="wide-field option-section">
+            <h3>产品位置、占比、留空</h3>
+            <div class="radio-grid position-grid">
+              <label><input type="radio" name="position" value="产品居中，占画面宽度约55%-65%，上下左右保留8%-12%呼吸空间，适合白底精修和单品展示" checked />居中大主体</label>
+              <label><input type="radio" name="position" value="产品偏右侧居中，占画面宽度约50%-60%，左侧保留干净背景，方便后续加文案但当前不生成文案" />偏右侧居中</label>
+              <label><input type="radio" name="position" value="产品偏左侧居中，占画面宽度约50%-60%，右侧保留干净背景，适合后续延展设计" />偏左侧居中</label>
+              <label><input type="radio" name="position" value="产品居中略靠下，占画面宽度约58%-68%，上方留出柔光和空间层次" />居中略靠下</label>
+              <label><input type="radio" name="position" value="产品右下三分位，占画面宽度约48%-58%，背景空间更完整，适合场景氛围图" />右下三分位</label>
+              <label><input type="radio" name="position" value="横向长条产品居中，占画面宽度约65%-75%，左右留空均衡，不能贴边裁切" />横向产品居中</label>
+            </div>
+            <input class="custom-input" name="positionCustom" placeholder="自定义位置、占比、留空，例如：产品占 60%，底部留 10%，四周不贴边" />
+          </section>
+
+          <div class="confirm-row">
+            <label class="checkline">
+              <input name="lockNoPoster" type="checkbox" checked />
+              强制不输出价格、标题、卖点卡、促销腰带和广告文字
+            </label>
+          </div>
+        </form>
+
+        <section class="panel output-panel">
+          <div class="panel-head">
+            <h2>关键词结果</h2>
+            <button class="primary-button" id="runExtract" type="button">生成关键词</button>
+          </div>
+
+          <div class="summary-grid">
+            <div>
+              <span>规则来源</span>
+              <strong id="summaryMode">仓库图片库</strong>
+            </div>
+            <div>
+              <span>产品位置</span>
+              <strong id="summaryPosition">居中大主体</strong>
+            </div>
+            <div>
+              <span>真实约束</span>
+              <strong id="summaryLock">已开启</strong>
+            </div>
+          </div>
+
+          <article class="result-block">
+            <div class="result-head">
+              <h3>产品美化关键词</h3>
+              <button class="copy-button" type="button" data-copy="beautyText">复制</button>
+            </div>
+            <pre id="beautyText"></pre>
+          </article>
+
+          <article class="result-block">
+            <div class="result-head">
+              <h3>背景场景关键词</h3>
+              <button class="copy-button" type="button" data-copy="sceneText">复制</button>
+            </div>
+            <pre id="sceneText"></pre>
+          </article>
+
+          <article class="result-block">
+            <div class="result-head">
+              <h3>真实约束关键词</h3>
+              <button class="copy-button" type="button" data-copy="truthText">复制</button>
+            </div>
+            <pre id="truthText"></pre>
+          </article>
+
+          <article class="result-block">
+            <div class="result-head">
+              <h3>负面关键词</h3>
+              <button class="copy-button" type="button" data-copy="negativeText">复制</button>
+            </div>
+            <pre id="negativeText"></pre>
+          </article>
+
+          <article class="result-block result-block-strong">
+            <div class="result-head">
+              <h3>完整可复制提示词</h3>
+              <button class="copy-button" type="button" data-copy="fullPromptText">复制</button>
+            </div>
+            <pre id="fullPromptText"></pre>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <div class="copy-panel" id="copyPanel" hidden>
+      <div class="copy-panel-card">
+        <div class="copy-panel-head">
+          <div>
+            <h2>手动复制</h2>
+            <p>浏览器拦截自动复制时，可直接复制下方已选中的内容。</p>
+          </div>
+          <button class="ghost-button" id="closeCopyPanel" type="button">关闭</button>
+        </div>
+        <textarea id="copyFallbackText" rows="10" readonly></textarea>
+      </div>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

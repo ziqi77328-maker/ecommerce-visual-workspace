@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>电商主图关键词提取器</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>电商主图关键词提取器</h1>
+          <p>008 决策流程 · 文字预览 · 可复制提示词</p>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost-button" id="loadBlenderCase" type="button">套用破壁机案例</button>
+          <button class="ghost-button" id="resetAll" type="button">清空</button>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <form class="panel input-panel" id="productForm">
+          <div class="panel-head">
+            <h2>产品信息</h2>
+            <span class="status-pill">本地离线</span>
+          </div>
+
+          <div class="field-grid">
+            <label>
+              品牌
+              <input name="brand" placeholder="如：美的 Midea" />
+            </label>
+            <label>
+              平台
+              <select name="platform">
+                <option value="京东/天猫">京东/天猫</option>
+                <option value="京东">京东</option>
+                <option value="天猫">天猫</option>
+                <option value="拼多多">拼多多</option>
+                <option value="其他">其他</option>
+              </select>
+            </label>
+            <label>
+              类目
+              <input name="category" placeholder="如：破壁机 / 电饭煲" />
+            </label>
+            <label>
+              型号
+              <input name="model" placeholder="不展示可留空" />
+            </label>
+            <label>
+              容量
+              <input name="capacity" placeholder="如：1.75L" />
+            </label>
+            <label>
+              价格
+              <input name="price" placeholder="如：399" />
+            </label>
+          </div>
+
+          <label class="wide-field">
+            产品外观锁定
+            <textarea name="appearance" rows="4" placeholder="颜色、结构、Logo、面板、把手、门体、杯体等真实外观"></textarea>
+          </label>
+
+          <div class="wide-field image-upload-block">
+            <div class="upload-head">
+              <label for="productImages">产品图</label>
+              <span id="imageCount">0 / 6</span>
+            </div>
+            <input id="productImages" name="productImages" type="file" accept="image/*" multiple />
+            <p>最多上传 6 张：主图、侧面、面板、Logo 等，用于锁定产品真实外观。图片只在本地浏览器预览，不会上传。</p>
+            <div class="image-preview-grid" id="imagePreviewGrid"></div>
+          </div>
+
+          <div class="wide-field image-upload-block">
+            <div class="upload-head">
+              <label for="accessoryImages">配件图</label>
+              <span id="accessoryImageCount">0 / 6</span>
+            </div>
+            <input id="accessoryImages" name="accessoryImages" type="file" accept="image/*" multiple />
+            <p>最多上传 6 张：内胆、沥糖釜、刀头、蒸架、量杯、清洁刷等真实配件，用于证明产品结构或附属卖点。</p>
+            <div class="image-preview-grid" id="accessoryImagePreviewGrid"></div>
+          </div>
+
+          <div class="wide-field accessory-control-block">
+            <div class="prop-head">配件摆放约束</div>
+            <div class="field-grid">
+              <label>
+                配件位置
+                <select name="accessoryLayout">
+                  <option value="右下前景前后错落">右下前景前后错落</option>
+                  <option value="产品前方横向陈列">产品前方横向陈列</option>
+                  <option value="产品旁边局部证据">产品旁边局部证据</option>
+                  <option value="自定义配件摆放">自定义配件摆放</option>
+                </select>
+              </label>
+              <label>
+                自定义配件摆放
+                <input name="accessoryLayoutCustom" placeholder="如：两个内胆在产品右下角，一前一后，不能超过产品" />
+              </label>
+            </div>
+            <label class="checkline accessory-lock">
+              <input name="lockAccessoryCount" type="checkbox" checked />
+              按上传数量生成配件，不合并、不省略
+            </label>
+            <label>
+              配件逐个说明
+              <textarea name="accessoryItems" rows="3" placeholder="如：配件1：银色不锈钢沥糖釜，放在后方偏左；配件2：金色/铜色内胆，放在前方右下。两个配件必须分开放置，不能套在一起。"></textarea>
+            </label>
+            <p>例如上传 2 张内胆图，提示词会要求生成 2 个独立内胆，放在产品右下前景，前后错落且整体小于主产品。</p>
+          </div>
+
+          <div class="wide-field image-upload-block">
+            <div class="upload-head">
+              <label for="referenceImages">参考图</label>
+              <span id="referenceImageCount">0 / 6</span>
+            </div>
+            <input id="referenceImages" name="referenceImages" type="file" accept="image/*" multiple />
+            <p>最多上传 6 张：价格腰带、构图、氛围、字体、背景、杯子饮品等参考。参考图只用于风格和布局，不覆盖产品真实外观。</p>
+            <div class="image-preview-grid" id="referenceImagePreviewGrid"></div>
+          </div>
+
+          <label class="wide-field">
+            主标题
+            <input name="corePoint" placeholder="画面最大标题，只填 1 个，如：精钢6叶龙牙刀" />
+          </label>
+
+          <label class="wide-field">
+            副标题
+            <input name="subtitle" placeholder="如：细腻破壁 香浓好喝；不填则按类目自动建议" />
+          </label>
+
+          <section class="wide-field sellpoint-block">
+            <div class="sellpoint-head">
+              <div>
+                <h3>卖点展示</h3>
+                <p>默认 1 条，需要更多再增加。AI 优化只整理表达，不新增未经确认的参数。</p>
+              </div>
+              <div class="sellpoint-actions">
+                <button class="ghost-button" id="optimizePoints" type="button">AI一键优化</button>
+                <button class="ghost-button" id="addSellPoint" type="button">增加卖点</button>
+              </div>
+            </div>
+            <div class="sellpoint-list" id="sellPointList">
+              <div class="sellpoint-row" data-index="1">
+                <label>
+                  小卖点 1
+                  <input name="subPoint1" />
+                </label>
+                <label>
+                  利益解释 1
+                  <input name="subBenefit1" />
+                </label>
+                <div class="row-options">
+                  <label class="checkline"><input name="subIcon1" type="checkbox" />小图标</label>
+                  <label class="checkline"><input name="subImageMode1" type="checkbox" />上传图片</label>
+                  <label class="inline-file">
+                    卖点图片 1
+                    <input name="subImage1" type="file" accept="image/*" />
+                  </label>
+                </div>
+                <button class="remove-sellpoint" type="button" aria-label="删除卖点 1">×</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="wide-field sellpoint-block benefit-block">
+            <div class="sellpoint-head">
+              <div>
+                <h3>权益展示</h3>
+                <p>默认 1 条，需要更多再增加。价格腰带和底部权益不得重复。</p>
+              </div>
+              <button class="ghost-button" id="addBenefit" type="button">增加权益</button>
+            </div>
+            <div class="sellpoint-list" id="benefitList">
+              <div class="benefit-row" data-index="1">
+                <label>
+                  权益 1
+                  <input name="benefit1" placeholder="如：咨询客服更优惠" />
+                </label>
+                <button class="remove-sellpoint" type="button" aria-label="删除权益 1">×</button>
+              </div>
+            </div>
+          </section>
+
+          <div class="field-grid">
+            <label>
+              活动标签
+              <input name="campaign" placeholder="如：活动到手价" />
+            </label>
+            <label>
+              价格腰带
+              <select name="priceBelt">
+                <option value="底部红金强促销价格腰带">底部红金强促销价格腰带</option>
+                <option value="左下角价格区">左下角价格区</option>
+                <option value="左侧整合价格区">左侧整合价格区</option>
+                <option value="右下角价格区">右下角价格区</option>
+                <option value="VS价格对比腰带">VS价格对比腰带</option>
+              </select>
+            </label>
+            <label>
+              版式
+              <select name="layout">
+                <option value="左文右品强促销版式">左文右品强促销版式</option>
+                <option value="左文右图">左文右图</option>
+                <option value="居中主视觉">居中主视觉</option>
+                <option value="强促销浅背景左文右品">强促销浅背景左文右品</option>
+              </select>
+            </label>
+            <label>
+              构图方向
+              <select name="composition">
+                <option value="左右构图">左右构图</option>
+                <option value="上下构图">上下构图</option>
+              </select>
+            </label>
+            <label>
+              主图目标
+              <select name="goal">
+                <option value="活动促销">活动促销</option>
+                <option value="功能教育">功能教育</option>
+                <option value="新品首发">新品首发</option>
+                <option value="高端质感">高端质感</option>
+                <option value="场景种草">场景种草</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="wide-field">
+            场景氛围
+            <textarea name="scene" rows="4" placeholder="背景、光影、饮品、果汁、米饭、内胆证据、促销氛围等"></textarea>
+          </label>
+
+          <div class="field-grid">
+            <label>
+              背景选择
+              <select name="backgroundMode">
+                <option value="黑金火焰特效背景">黑金火焰特效背景</option>
+                <option value="自定义背景">自定义背景</option>
+                <option value="少量特效">少量特效</option>
+                <option value="特效背景">特效背景</option>
+                <option value="AI文字主卖点">AI文字主卖点</option>
+                <option value="复杂场景图">复杂场景图</option>
+                <option value="简单场景图">简单场景图</option>
+              </select>
+            </label>
+            <label>
+              自定义背景配件
+              <input name="backgroundPropsCustom" placeholder="如：米饭、果汁、豆浆、柠檬片" />
+            </label>
+            <label>
+              背景质感
+              <select name="backgroundStyle">
+                <option value="深色高端棚拍">深色高端棚拍</option>
+                <option value="黑金火焰大促舞台">黑金火焰大促舞台</option>
+                <option value="深灰石材质感">深灰石材质感</option>
+                <option value="金色光圈舞台">金色光圈舞台</option>
+                <option value="真实厨房轻场景">真实厨房轻场景</option>
+                <option value="金色丝绸光效舞台">金色丝绸光效舞台</option>
+                <option value="黑金科技光圈舞台">黑金科技光圈舞台</option>
+                <option value="自定义背景质感">自定义背景质感</option>
+              </select>
+            </label>
+            <label>
+              自定义背景质感
+              <input name="backgroundStyleCustom" placeholder="如：深蓝金属科技棚拍、暖金石材舞台" />
+            </label>
+            <label>
+              特效字融合
+              <select name="effectTextMode">
+                <option value="特效字融入背景">特效字融入背景</option>
+                <option value="不生成特效字">不生成特效字</option>
+                <option value="只留特效字位置">只留特效字位置</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="wide-field prop-block">
+            <div class="prop-head">背景配件勾选</div>
+            <div class="prop-options">
+              <label class="checkline"><input name="backgroundProps" type="checkbox" value="米饭" />米饭</label>
+              <label class="checkline"><input name="backgroundProps" type="checkbox" value="果汁" />果汁</label>
+              <label class="checkline"><input name="backgroundProps" type="checkbox" value="水果" />水果</label>
+              <label class="checkline"><input name="backgroundProps" type="checkbox" value="豆浆" />豆浆</label>
+              <label class="checkline"><input name="backgroundProps" type="checkbox" value="内胆" />内胆</label>
+              <label class="checkline"><input name="backgroundProps" type="checkbox" value="沥糖釜" />沥糖釜</label>
+            </div>
+          </div>
+
+          <div class="wide-field learning-card">
+            <div class="prop-head">背景 / 产品质感学习要点</div>
+            <ul>
+              <li>深色背景不是纯黑，要有深灰、黑金、石材纹理、暗金渐变或斜向光纹。</li>
+              <li>产品后面要有柔亮背光圈，只亮产品周围，把轮廓托出来。</li>
+              <li>产品质感靠反光，不靠磨皮：金属拉丝、玻璃反射、面板高光、边缘白色轮廓光要清楚。</li>
+              <li>卖点框小而精，黑底金边、分层小条、证据小图，不做大表格。</li>
+              <li>装饰物只服务产品：勾了什么就只生成什么，未勾选的果汁、豆浆、水果等不要出现。</li>
+            </ul>
+          </div>
+
+          <div class="field-grid">
+            <label>
+              卖点边框主色调
+              <select name="sellingFrameTone">
+                <option value="黑色边框金色背景板">黑色边框金色背景板</option>
+                <option value="亮晶晶黑金边框">亮晶晶黑金边框</option>
+                <option value="金色边框黑色背景板">金色边框黑色背景板</option>
+                <option value="米色边框红色背景板">米色边框红色背景板</option>
+                <option value="自定义">自己手写</option>
+              </select>
+            </label>
+            <label>
+              自定义卖点边框
+              <input name="sellingFrameCustom" placeholder="如：银色边框浅灰背景板" />
+            </label>
+            <label>
+              卖点背景板
+              <select name="sellingBoardMode">
+                <option value="卖点背景板包含标题">卖点背景板包含标题</option>
+                <option value="卖点背景板不包含标题">卖点背景板不包含标题</option>
+                <option value="无背景板">无背景板</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="wide-field">
+            证据区
+            <textarea name="evidence" rows="3" placeholder="如：6叶刀头结构示意；凹盘加热细节"></textarea>
+          </label>
+
+          <div class="wide-field image-upload-block">
+            <div class="upload-head">
+              <label for="evidenceImages">证据图</label>
+              <span id="evidenceImageCount">0 / 6</span>
+            </div>
+            <input id="evidenceImages" name="evidenceImages" type="file" accept="image/*" multiple />
+            <p>最多上传 6 张：刀头细节、内胆材质、加热盘、检测证明、功能结构图等。证据图只做辅助证明，不抢产品主体。</p>
+            <div class="image-preview-grid" id="evidenceImagePreviewGrid"></div>
+          </div>
+
+          <label class="wide-field">
+            额外附加提示词
+            <textarea name="extraPrompt" rows="4" placeholder="如：背景更亮、杯子不要超过产品高度、不要生成文字乱码、保留左侧留白等"></textarea>
+          </label>
+
+          <div class="confirm-row">
+            <label class="checkline">
+              <input name="confirmed" type="checkbox" />
+              以上信息均已确认
+            </label>
+            <label class="checkline">
+              <input name="officialChecked" type="checkbox" />
+              已核对官方资料
+            </label>
+          </div>
+        </form>
+
+        <section class="panel output-panel">
+          <div class="panel-head">
+            <h2>流程检查</h2>
+            <button class="primary-button" id="runExtract" type="button">提取关键词</button>
+          </div>
+
+          <div class="score-strip">
+            <div>
+              <span id="scoreNumber">0</span>
+              <small>流程评分</small>
+            </div>
+            <div>
+              <span id="riskNumber">0</span>
+              <small>风险项</small>
+            </div>
+            <div>
+              <span id="statusText">待提取</span>
+              <small>生成状态</small>
+            </div>
+          </div>
+
+          <div class="result-grid">
+            <article class="result-block">
+              <h3>已提供</h3>
+              <ul id="providedList"></ul>
+            </article>
+            <article class="result-block">
+              <h3>缺少信息</h3>
+              <ul id="missingList"></ul>
+            </article>
+            <article class="result-block">
+              <h3>不能编造</h3>
+              <ul id="blockedList"></ul>
+            </article>
+            <article class="result-block">
+              <h3>固定素材</h3>
+              <ul id="assetList"></ul>
+            </article>
+            <article class="result-block warning-block">
+              <h3>电商预警</h3>
+              <ul id="warningList"></ul>
+            </article>
+          </div>
+
+          <div class="tabs">
+            <button class="tab is-active" data-tab="preview" type="button">文字预览</button>
+            <button class="tab" data-tab="prompt" type="button">完整提示词</button>
+            <button class="tab" data-tab="blankPrompt" type="button">空白版提示词</button>
+            <button class="tab" data-tab="pureBackgroundPrompt" type="button">纯背景提示词</button>
+          </div>
+
+          <section class="tab-panel is-active" id="previewPanel">
+            <div class="toolbar">
+              <h3>画面文字</h3>
+              <button class="copy-button" data-copy="previewText" type="button">复制</button>
+            </div>
+            <pre id="previewText"></pre>
+          </section>
+
+          <section class="tab-panel" id="promptPanel">
+            <div class="toolbar">
+              <h3>AI 提示词</h3>
+              <button class="copy-button" data-copy="promptText" type="button">复制</button>
+            </div>
+            <pre id="promptText"></pre>
+          </section>
+
+          <section class="tab-panel" id="blankPromptPanel">
+            <div class="toolbar">
+              <h3>后期排版用的空白版提示词</h3>
+              <button class="copy-button" data-copy="blankPromptText" type="button">复制</button>
+            </div>
+            <pre id="blankPromptText"></pre>
+          </section>
+
+          <section class="tab-panel" id="pureBackgroundPromptPanel">
+            <div class="toolbar">
+              <h3>产品场景纯背景提示词</h3>
+              <button class="copy-button" data-copy="pureBackgroundPromptText" type="button">复制</button>
+            </div>
+            <pre id="pureBackgroundPromptText"></pre>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

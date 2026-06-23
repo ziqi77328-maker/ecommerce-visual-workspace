@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>电商AI关键词生成器</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">团队网页版 · 词库增强 · AI扩写预留</div>
+          <h1>电商AI关键词生成器</h1>
+          <p class="lead">词库只做参考，基于产品、卖点、平台和风格重新组合，输出三种可落地方向。</p>
+        </div>
+        <div class="toolbar">
+          <button class="btn ghost" id="loadDemo" type="button">套用示例</button>
+          <button class="btn ghost" id="clearAll" type="button">清空</button>
+          <button class="btn" id="copyAll" type="button">复制全部</button>
+        </div>
+      </header>
+
+      <section class="layout">
+        <aside class="panel input-panel">
+          <div class="panel-head">
+            <h2>输入信息</h2>
+            <span class="pill" id="libraryStatus">加载词库中</span>
+          </div>
+
+          <form id="keywordForm">
+            <label class="field">
+              <span>产品类型</span>
+              <input id="productType" list="productTypeList" placeholder="如：低糖电饭煲 / 破壁机 / 微波炉" autocomplete="off" />
+              <datalist id="productTypeList"></datalist>
+            </label>
+
+            <label class="field">
+              <span>核心卖点</span>
+              <textarea id="sellingPoints" placeholder="每行一个卖点。例：&#10;专业沥糖釜&#10;0涂层健康内胆&#10;22分钟快煮饭"></textarea>
+              <p class="hint">词库会参与匹配，但输出会重新组合、扩写、去重复；不会机械堆关键词。</p>
+            </label>
+
+            <div class="grid-2">
+              <label class="field">
+                <span>平台</span>
+                <select id="platform"></select>
+              </label>
+              <label class="field">
+                <span>视觉风格</span>
+                <select id="visualStyle"></select>
+              </label>
+            </div>
+
+            <div class="field">
+              <span>输出用途</span>
+              <div class="purpose-group" id="purposeGroup" role="radiogroup" aria-label="输出用途"></div>
+            </div>
+
+            <div class="grid-2">
+              <label class="field">
+                <span>活动信息</span>
+                <input id="campaign" placeholder="如：618 / 政府补贴 / 新品价" />
+              </label>
+              <label class="field">
+                <span>价格权益</span>
+                <input id="benefits" placeholder="如：到手价、返现、赠品" />
+              </label>
+            </div>
+
+            <label class="field">
+              <span>产品外观约束</span>
+              <textarea id="appearance" placeholder="可选：颜色、材质、Logo、面板、把手、门体、杯体、内胆等真实结构"></textarea>
+            </label>
+
+            <div class="form-actions">
+              <button class="btn primary" id="generateBtn" type="submit">生成关键词</button>
+              <button class="btn ghost" id="copyMain" type="button">复制主图</button>
+            </div>
+
+            <p class="hint api-hint">已预留 <code>/api/generate</code> 接口位置。以后接 GPT API 时，API Key 必须放后端，不能写在前端。</p>
+          </form>
+        </aside>
+
+        <section class="result-grid">
+          <div class="summary" id="summary" hidden>
+            <div class="metric">
+              <b>输出方向</b>
+              <span id="metricDirections">稳妥 / 特效 / 质感</span>
+            </div>
+            <div class="metric">
+              <b>词库来源</b>
+              <span id="metricLibrary">外置 JSON</span>
+            </div>
+            <div class="metric">
+              <b>成交模块</b>
+              <span id="metricPrice">保留价格权益</span>
+            </div>
+            <div class="metric">
+              <b>生成策略</b>
+              <span id="metricRisk">去重复扩写</span>
+            </div>
+          </div>
+
+          <div class="panel empty" id="emptyState">
+            <div>
+              <h2>填入产品信息后生成</h2>
+              <p>页面会读取 <code>data/keywords.json</code>，把词库作为参考素材，生成稳妥电商款、高点击特效款、高级质感款三种方向。</p>
+            </div>
+          </div>
+
+          <article class="result-card" hidden>
+            <div class="result-head">
+              <div class="result-title">
+                <span class="mark hot"></span>
+                <h3>三方向主图提示词</h3>
+              </div>
+              <button class="copy" data-copy="mainPrompt" type="button">复制</button>
+            </div>
+            <pre id="mainPrompt"></pre>
+          </article>
+
+          <article class="result-card" hidden>
+            <div class="result-head">
+              <div class="result-title">
+                <span class="mark green"></span>
+                <h3>三方向无字底图提示词</h3>
+              </div>
+              <button class="copy" data-copy="backgroundPrompt" type="button">复制</button>
+            </div>
+            <pre id="backgroundPrompt"></pre>
+          </article>
+
+          <article class="result-card" hidden>
+            <div class="result-head">
+              <div class="result-title">
+                <span class="mark gold"></span>
+                <h3>三方向卖点排版建议</h3>
+              </div>
+              <button class="copy" data-copy="layoutAdvice" type="button">复制</button>
+            </div>
+            <pre id="layoutAdvice"></pre>
+          </article>
+
+          <article class="result-card" hidden>
+            <div class="result-head">
+              <div class="result-title">
+                <span class="mark"></span>
+                <h3>三方向豆包视频关键词</h3>
+              </div>
+              <button class="copy" data-copy="videoPrompt" type="button">复制</button>
+            </div>
+            <pre id="videoPrompt"></pre>
+          </article>
+        </section>
+      </section>
+    </main>
+
+    <div class="toast" id="toast">已复制</div>
+    <script src="./script.js" defer></script>
+  </body>
+</html>
