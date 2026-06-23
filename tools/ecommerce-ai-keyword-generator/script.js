@@ -1,11 +1,20 @@
 const DATA_URL = "./data/keywords.json";
 const API_ENDPOINT = "/api/generate";
+const STORAGE_KEYS = {
+  lastForm: "ecommerceKeyword:lastForm",
+  history: "ecommerceKeyword:history",
+  favorites: "ecommerceKeyword:favorites",
+  recent: "ecommerceKeyword:recent",
+};
 
 const $ = (selector) => document.querySelector(selector);
-const resultCards = Array.from(document.querySelectorAll(".result-card"));
 
 let keywordData = null;
 let generationCount = 0;
+let currentResults = null;
+let currentData = null;
+let restoreFromShareData = null;
+let copyBlocks = [];
 
 function splitPoints(value) {
   return value
@@ -14,10 +23,18 @@ function splitPoints(value) {
     .filter(Boolean);
 }
 
+function normalizePurpose(purpose) {
+  return purpose === "底图" ? "背景图" : purpose || "主图";
+}
+
+function purposeInputValue(purpose) {
+  return normalizePurpose(purpose) === "背景图" ? "底图" : purpose || "主图";
+}
+
 function normalize(text) {
-  return text
+  return String(text || "")
     .replace(/[，。；、：:\s“”"'【】（）()]/g, "")
-    .replace(/高转化|商业摄影|电商|主图|关键词|提示词/g, "")
+    .replace(/高转化|商业摄影|电商|主图|关键词|提示词|背景图/g, "")
     .trim();
 }
 
@@ -32,9 +49,7 @@ function similarity(a, b) {
 function uniquePush(list, phrase, threshold = 0.72) {
   const clean = String(phrase || "").trim();
   if (!clean) return;
-  if (!list.some((item) => similarity(item, clean) > threshold)) {
-    list.push(clean);
-  }
+  if (!list.some((item) => similarity(item, clean) > threshold)) list.push(clean);
 }
 
 function uniqueList(items, threshold = 0.72) {
@@ -54,7 +69,7 @@ function pick(items, offset, count) {
 }
 
 function getSelectedPurpose() {
-  return document.querySelector("input[name='purpose']:checked")?.value || "主图";
+  return normalizePurpose(document.querySelector("input[name='purpose']:checked")?.value);
 }
 
 function getFormData() {
@@ -69,10 +84,73 @@ function getFormData() {
     purpose: getSelectedPurpose(),
     campaign: $("#campaign").value.trim() || "活动到手价",
     benefits: $("#benefits").value.trim() || "权益1：【真实权益】；权益2：【真实权益】",
+    aiMode: $("#aiMode").checked,
     appearance:
       $("#appearance").value.trim() ||
-      "锁定产品真实颜色、Logo位置、控制面板、按键、把手、门体、锅盖、杯体、内胆和主体比例",
+      "锁定真实外观、Logo位置、控制面板、按键、把手、门体、锅盖、杯体、内胆和主体比例",
   };
+}
+
+function setFormData(data = {}) {
+  $("#productType").value = data.productType || "";
+  $("#sellingPoints").value = Array.isArray(data.points) ? data.points.join("\n") : data.sellingPoints || "";
+  $("#platform").value = data.platform || $("#platform").value;
+  $("#visualStyle").value = data.visualStyle || $("#visualStyle").value;
+  $("#campaign").value = data.campaign && data.campaign !== "活动到手价" ? data.campaign : "";
+  $("#benefits").value =
+    data.benefits && !data.benefits.includes("【真实权益】") ? data.benefits : "";
+  $("#appearance").value =
+    data.appearance && !data.appearance.includes("锁定真实外观") ? data.appearance : "";
+  $("#aiMode").checked = Boolean(data.aiMode);
+  const purpose = purposeInputValue(data.purpose);
+  const purposeInput = document.querySelector(`input[name='purpose'][value='${purpose}']`);
+  if (purposeInput) purposeInput.checked = true;
+}
+
+function storageGet(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function storageSet(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    showToast("浏览器存储空间不足");
+  }
+}
+
+function compactData(data) {
+  return {
+    productType: data.productType,
+    points: data.points,
+    corePoint: data.corePoint,
+    platform: data.platform,
+    visualStyle: data.visualStyle,
+    purpose: normalizePurpose(data.purpose),
+    campaign: data.campaign,
+    benefits: data.benefits,
+    appearance: data.appearance,
+    aiMode: data.aiMode,
+  };
+}
+
+function saveLastForm() {
+  if (!keywordData) return;
+  storageSet(STORAGE_KEYS.lastForm, compactData(getFormData()));
+}
+
+function formatDate(iso) {
+  try {
+    const date = new Date(iso);
+    return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  } catch (error) {
+    return "";
+  }
 }
 
 function getCategory(productType) {
@@ -84,206 +162,383 @@ function getCategory(productType) {
   );
 }
 
-function detectEvidenceRules(text, category) {
-  const rules = [...(category.hardRules || [])];
-  if (/低糖|沥糖|控糖|米汤分离/.test(text)) {
-    rules.push("低糖饭证据必须为上方沥糖釜/沥糖篮装米饭 + 下方配套内胆，不能用普通内胆或饭碗替代");
-  }
-  if (/304/.test(text)) {
-    rules.push("304不锈钢只在用户已确认时使用，优先调用固定304材质贴片或官方证据");
-  }
-  if (/316|316L|母婴级/.test(text)) {
-    rules.push("316L/316母婴级只在用户已确认时使用，优先调用固定316材质贴片或官方证据");
-  }
-  if (/0涂层|零涂层/.test(text)) {
-    rules.push("0涂层内胆优先使用固定内胆证据素材，保持材质和文字清晰");
-  }
-  if (/晶钛/.test(text)) {
-    rules.push("晶钛卖点优先使用晶钛内胆证据，配合金色光圈和真实投影");
-  }
-  if (/AI|智能|控温|雷达/i.test(text)) {
-    rules.push("AI/智能卖点可用蓝白数据流、雷达扫描、屏幕高光，但不能遮挡产品面板");
-  }
-  if (!rules.length) {
-    rules.push("证据区用真实局部图、材质贴片或配件证明卖点，不做重复文字堆叠");
-  }
-  return uniqueList(rules);
-}
-
 function purposeNote(purpose) {
   const notes = {
-    主图: "按高转化主图组织，保留价格权益闭环，适合搜索首图和活动图",
-    底图: "为后期排字预留空间，画面不生成文字、数字、Logo和价格",
-    视频: "强调镜头运动、光影变化、产品细节和卖点证据的动态呈现",
-    商详: "适合拆成详情页首屏、卖点模块、证据模块和权益收口",
+    主图: "仅输出主图关键词，包含主体、证据区、卖点层级和成交区。",
+    背景图: "仅输出背景图关键词，固定包含产品版和纯背景版。",
+    视频: "仅输出视频关键词，包含镜头、运动、细节和收尾。",
+    商详: "仅输出商详关键词，适合详情页模块化页面生成。",
   };
   return notes[purpose] || notes.主图;
 }
 
-function expandSellingAngles(data, category, direction, offset) {
-  const sourcePoints = data.points.length ? data.points : ["【核心卖点】", "【辅助卖点】"];
-  const raw = [];
-  sourcePoints.forEach((point, index) => {
-    const verb = direction.titleVerbs[(index + offset) % direction.titleVerbs.length];
-    if (direction.key === "safe") {
-      raw.push(`${point}转成清晰购买理由，旁边放对应证据`);
-      raw.push(`${verb}${point}，标题区只表达一次`);
-    } else if (direction.key === "effect") {
-      raw.push(`${point}做成第一眼视觉钩子，配合局部光效和动线`);
-      raw.push(`${verb}${point}的结果感，证据贴片靠近产品`);
-    } else {
-      raw.push(`${point}用材质、光影和局部细节克制呈现`);
-      raw.push(`${verb}${point}，避免廉价大字和过度火焰`);
-    }
-  });
-  raw.push(...category.vocabulary.map((word) => `${word}作为参考词，重新组合进卖点或证据区`));
-  return pick(raw, offset, 5);
+function styleData(name) {
+  return keywordData.visualStyles[name] || Object.values(keywordData.visualStyles)[0];
 }
 
-function buildDirection(data, category, style, direction, index, evidenceRules) {
-  const offset = generationCount + index * 3 + data.productType.length + data.points.join("").length;
-  const styleScene = pick(style.scene, offset, 2).join("，");
-  const styleTitle = pick(style.title, offset + 1, 2).join("，");
-  const layout = pick([...direction.layoutBias, ...category.layouts], offset, 2).join(" / ");
-  const evidence = pick(
-    [...evidenceRules, ...category.evidence, ...keywordData.fallback.evidence],
-    offset,
-    5,
-  );
-  const visual = pick(
-    [...direction.visual, ...category.scenes, styleScene, ...keywordData.fallback.structure],
-    offset,
+function buildContext(data) {
+  const category = getCategory(data.productType);
+  const style = styleData(data.visualStyle);
+  const seed = generationCount + data.productType.length + data.points.join("").length;
+  const sceneBase = pick([...category.scenes, ...style.scene], seed, 3);
+  const scenePosition = sceneBase.join("，");
+  const layout = pick([...category.layouts, "右侧主体构图", "左侧预留排版区", "底部留白15%"], seed + 1, 3);
+  const backgroundElements = pick(
+    [
+      ...category.vocabulary,
+      ...style.scene,
+      "玻璃花瓣",
+      "柔和蒸汽粒子",
+      "流光材质",
+      "浅金色能量线",
+      "细腻台面纹理",
+      "远景厨房虚化",
+      "高端材质反射",
+    ],
+    seed + 2,
     6,
   );
-  const sellingAngles = expandSellingAngles(data, category, direction, offset);
-  const aux = uniqueList(data.auxPoints.length ? data.auxPoints : sellingAngles).slice(0, 5);
-  const referenceNote =
-    category.vocabulary?.length > 0
-      ? `参考词库命中：${pick(category.vocabulary, offset, 5).join(" / ")}。这些词只作为素材，不原样固定返回。`
-      : "词库未命中具体类目，已按电商视觉逻辑补充产品结构、证据区、价格区和真实光影关键词。";
-
-  const titleOptions = uniqueList([
-    `${data.corePoint}，把结果感讲清楚`,
-    `围绕${data.corePoint}建立第一眼购买理由`,
-    `${data.corePoint}，用证据减少用户顾虑`,
-    direction.key === "effect" ? `${data.corePoint}，做成强视觉钩子` : "",
-    direction.key === "premium" ? `${data.corePoint}，用质感和细节表达价值` : "",
-  ]).slice(0, 3);
-
-  const truthRules = keywordData.truthRules.join("；");
-  const negative = keywordData.fallback.negative.join("，");
-
-  const mainPrompt = `${direction.name}
-定位：${direction.aim}
-${referenceNote}
-
-主图提示词：
-${data.platform}电商${data.purpose}，产品为${data.productType}，方向为${direction.name}，视觉风格参考${data.visualStyle}但重新组合表达。
-产品外观锁定：${data.appearance}。允许优化光影、清晰度、轮廓光、接触阴影和轻微透视；禁止改变型号、主色、Logo位置、控制面板、按键、旋钮、把手、门体、锅盖、杯体、内胆和产品比例。
-推荐版式：${layout}。产品占画面45%-60%，主体清晰，背景服务产品，不抢主体。
-标题扩写候选：
-1. ${titleOptions[0] || data.corePoint}
-2. ${titleOptions[1] || `${data.corePoint}建立购买理由`}
-3. ${titleOptions[2] || `${data.corePoint}用证据证明`}
-辅助卖点重组：
-${aux.map((item, itemIndex) => `${itemIndex + 1}. ${item}`).join("\n")}
-证据区：${evidence.join("；")}。证据区只证明卖点，不复读主标题。
-视觉关键词：${visual.join("；")}；${styleTitle}；真实商业摄影；信息层级清晰；缩略图可读。
-价格权益区：${data.campaign}，到手价 ¥【真实价格】，${data.benefits}。${direction.price}。底部价格腰带高度14%-18%，含服务条总成交区不超过22%。
-去重复约束：核心卖点只在标题区表达一次；容量如有只出现一次且放产品主体右侧上半部；右侧证据贴片出现过的卖点不再进入左侧文字列表；价格权益区只写成交权益。
-真实性约束：${truthRules}。
-负面关键词：${negative}。`;
-
-  const backgroundPrompt = `${direction.name}
-无字底图提示词：
-${data.platform}电商无字底图，产品为${data.productType}，方向为${direction.name}。背景参考${styleScene}，但不要生成任何文字、数字、Logo、价格、角标或促销贴片。
-画面布局：${layout}；产品或产品摆放位占45%-60%；左侧/上方预留卖点空间；底部预留价格权益空间；证据贴片位靠近产品但不生成文字。
-可落地细节：${visual.join("；")}。围绕${data.corePoint}准备证据位置：${evidence.slice(0, 3).join("；")}。
-禁止：背景抢主体，过度梦幻，证据配件变形，生成乱码，生成虚假价格和参数。`;
-
-  const layoutAdvice = `${direction.name}
-卖点排版建议：
-1. 主阅读线：品牌/平台背书 -> ${titleOptions[0] || data.corePoint} -> 产品主体 -> 证据区 -> 价格权益。
-2. 版式：${layout}。
-3. 标题：只讲${data.corePoint}，不要把同一句话拆成多个贴片重复出现。
-4. 辅助卖点：${aux.slice(0, 4).join(" / ")}。每个卖点只占一个区域。
-5. 证据区：${evidence.slice(0, 4).join(" / ")}。证据必须贴近对应结构，不能变成装饰。
-6. 价格区：${direction.price}；没有真实价格时保留¥【真实价格】和【真实权益】占位。
-7. 去重复结果：已过滤相似表达，避免连续使用同一批泛词；同类词只保留最能落地的一句。`;
-
-  const videoPrompt = `${direction.name}
-豆包视频关键词：
-${data.productType}，${direction.name}，${data.visualStyle}，${data.platform}电商短视频，5-8秒。
-镜头1：${pick(["正面略俯视推近", "从产品侧前方滑入", "低角度轻推镜"], offset, 1)[0]}，展示真实产品主体和轮廓光。
-镜头2：扫过${evidence.slice(0, 3).join("、")}，用局部特写证明${data.corePoint}。
-镜头3：${direction.key === "effect" ? "加入克制光效、速度线和结果感转场" : direction.key === "premium" ? "用慢速棚拍光影和材质反射展示高级感" : "用清晰卖点卡位置和产品证据建立购买理由"}。
-镜头4：回到稳定主视觉，底部预留价格权益区，便于后期加${data.campaign}和成交权益。
-动态关键词：${visual.slice(0, 5).join("，")}，产品不变形，面板清晰，证据真实，背景低干扰。
-负面关键词：不要改变外观，不要生成错误Logo，不要乱码，不要虚假价格，不要烟雾遮挡产品，不要证据配件变形。`;
-
+  const lighting = pick(
+    [
+      ...style.title,
+      "暖金色自然光",
+      "高级棚拍光",
+      "柔和阴影",
+      "层次高光",
+      "产品边缘轮廓光",
+      "低干扰背景光",
+    ],
+    seed + 3,
+    5,
+  );
+  const evidence = pick(
+    [...category.evidence, ...keywordData.fallback.evidence, ...category.vocabulary],
+    seed + 4,
+    5,
+  );
+  const selling = uniqueList(data.points.length ? data.points : category.vocabulary).slice(0, 5);
   return {
-    name: direction.name,
+    category,
+    style,
+    seed,
+    scenePosition,
     layout,
+    backgroundElements,
+    lighting,
     evidence,
-    mainPrompt,
-    backgroundPrompt,
-    layoutAdvice,
-    videoPrompt,
+    selling,
   };
 }
 
-async function requestApiGenerate(payload) {
-  if (!keywordData.api?.enabled) return null;
-  const response = await fetch(API_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+function section(title, content) {
+  return { title, content: String(content || "").trim() };
+}
+
+function createResult({ purpose, title, subtitle, category, blocks }) {
+  const plainText = flattenBlocks(blocks);
+  return {
+    purpose,
+    title,
+    subtitle,
+    category,
+    blocks,
+    plainText,
+    directions: [{ name: purpose }],
+    mainPrompt: purpose === "主图" ? plainText : "",
+    backgroundPrompt: purpose === "背景图" ? plainText : "",
+    layoutAdvice: purpose === "商详" ? plainText : "",
+    videoPrompt: purpose === "视频" ? plainText : "",
+  };
+}
+
+function flattenBlocks(blocks) {
+  return blocks
+    .map((block) => {
+      if (block.type === "version") {
+        return `## ${block.title}\n\n${block.sections
+          .map((item) => `【${item.title}】\n${item.content}`)
+          .join("\n\n")}`;
+      }
+      return `【${block.title}】\n${block.content}`;
+    })
+    .join("\n\n--------------------------------\n\n");
+}
+
+function buildMainImageResult(data, ctx) {
+  const title = `${data.productType}主图关键词`;
+  const prompt = `${data.platform}电商主图，${data.productType}，核心卖点“${data.corePoint}”。${ctx.scenePosition}，${ctx.layout.join("，")}。主体占画面45%-60%，真实清晰，${ctx.lighting.join("，")}。卖点区只表达${data.corePoint}，辅助卖点包含${ctx.selling.slice(1, 5).join("、") || "【辅助卖点】"}。证据区使用${ctx.evidence.slice(0, 4).join("、")}证明卖点。底部成交区写${data.campaign}，到手价 ¥【真实价格】，${data.benefits}。禁止产品变形、Logo错误、控制面板模糊、文字乱码、参数臆造、背景抢主体。`;
+  return createResult({
+    purpose: "主图",
+    title,
+    subtitle: "单用途输出：只生成主图关键词",
+    category: ctx.category,
+    blocks: [
+      section("主图定位", `${data.platform}平台转化主图，目标是第一眼看懂产品、卖点和成交理由。`),
+      section("构图建议", `${ctx.layout.join("；")}；底部价格权益区控制在画面14%-18%；产品主体不可低于45%。`),
+      section("卖点层级", `核心卖点：${data.corePoint}。辅助卖点：${ctx.selling.slice(1, 5).join(" / ") || "【待补充】"}。同一卖点不得重复出现在标题、贴片和价格区。`),
+      section("证据与约束", `证据优先使用：${ctx.evidence.join(" / ")}。产品约束：${data.appearance}。`),
+      section("AI生图关键词", prompt),
+    ],
   });
-  if (!response.ok) throw new Error("API generate failed");
-  return response.json();
+}
+
+function buildBackgroundResult(data, ctx) {
+  if (ctx.style.backgroundTemplate?.id === "glassPetal") {
+    return buildGlassPetalBackgroundResult(data, ctx);
+  }
+  const composition = `${ctx.layout.join("，")}，右侧或中心偏右预留55%主体位置，左侧预留卖点排版区，底部留白15%用于价格腰带`;
+  const elements = ctx.backgroundElements.join("，");
+  const light = ctx.lighting.join("，");
+  const sharedScene = ctx.scenePosition;
+  const productPrompt = `${data.platform}电商背景图产品版预览，${sharedScene}，${composition}，背景元素包含${elements}，光影氛围为${light}。画面中保留${data.productType}，自然融入场景，主体真实清晰，占画面约55%，${data.appearance}。背景服务后期排版，左侧和底部留白干净，画面无乱码文字，无虚假参数，适用于GPT、豆包、即梦、Liblib生图。`;
+  const purePrompt = `电商排版纯背景底图，${sharedScene}，${composition}，背景元素包含${elements}，光影氛围为${light}。保持与版本A完全一致的场景、色调、光影、构图、元素和空间关系，仅删除主体实物，保留干净留白和真实空间透视。不要出现电饭煲、饭煲、破壁机、微波炉、空气炸锅、水壶、养生壶、内胆、配件、Logo、控制面板、品牌元素、主体轮廓、主体阴影、主体反光、包装、文字、数字、水印，适用于GPT、豆包、即梦、Liblib生图。`;
+  return createResult({
+    purpose: "背景图",
+    title: `${data.productType}背景图关键词`,
+    subtitle: "背景图模式：固定输出产品版和纯背景版，两套场景保持一致",
+    category: ctx.category,
+    blocks: [
+      {
+        type: "version",
+        title: "版本A：产品版背景图提示词",
+        sections: [
+          section("场景定位", sharedScene),
+          section("构图建议", composition),
+          section("背景元素", elements),
+          section("光影氛围", light),
+          section("产品约束", `${data.appearance}。Logo位置不变，控制面板清晰，比例不可改变。`),
+          section("AI生图关键词（产品版）", productPrompt),
+        ],
+      },
+      {
+        type: "version",
+        title: "版本B：纯背景版提示词",
+        sections: [
+          section("场景定位", sharedScene),
+          section("构图建议", composition),
+          section("背景元素", elements),
+          section("光影氛围", light),
+          section("一致性要求", "场景、色调、光影、构图、元素、空间关系全部与版本A一致；唯一变化是删除主体实物。"),
+          section("纯背景禁用内容", "禁止出现电饭煲、饭煲、破壁机、微波炉、空气炸锅、水壶、养生壶、内胆、配件、Logo、控制面板、品牌元素、主体轮廓、主体阴影、主体反光、包装、文字、数字、水印。"),
+          section("AI生图关键词（纯背景版）", purePrompt),
+        ],
+      },
+    ],
+  });
+}
+
+function buildGlassPetalBackgroundResult(data, ctx) {
+  const template = ctx.style.backgroundTemplate;
+  const seed = ctx.seed;
+  const scene = pick(
+    [
+      ...template.sceneDirection,
+      "现代厨房抽象空间",
+      "浅金/米白/银灰统一色调",
+      "干净商业棚拍背景",
+      "电商主图后期排版底图",
+    ],
+    seed,
+    4,
+  ).join("，");
+  const composition = [
+    "1:1正方形电商底图",
+    "右侧预留主体位",
+    "产品预览版主体占画面约50%-55%",
+    "左侧预留标题区",
+    "底部预留15%-18%价格权益区",
+    "右下角必须留白，方便后期放证据图或卖点模块",
+  ].join("，");
+  const elements = pick(
+    [
+      ...template.visualElements,
+      "浅金速度线点到为止",
+      "玻璃材质折射层",
+      "轻盈健康氛围",
+      "高端材质感",
+      "留白区干净",
+    ],
+    seed + 1,
+    8,
+  ).join("，");
+  const light = pick(
+    [...template.texture, ...ctx.lighting, "柔和椭圆背光", "真实台面接触阴影"],
+    seed + 2,
+    7,
+  ).join("，");
+  const productConstraint = `${data.productType}自然融入右侧产品位，产品外观锁定：${data.appearance}。Logo位置不变，控制面板清晰，比例不可改变，产品与台面有真实接触阴影和轻微反射。`;
+  const baseConsistency = `场景为${scene}，构图为${composition}，背景元素为${elements}，光影质感为${light}`;
+  const productPrompt = `${data.platform}电商玻璃花瓣背景产品预览图，${baseConsistency}。画面保留${data.productType}主体，${productConstraint}。背景通透、干净明亮，不生成广告文字、价格、乱码、促销标签、品牌Logo或多余配件。左侧和底部保留后期排版空间，适用于GPT、豆包、即梦、Liblib直接生图。`;
+  const purePrompt = `电商玻璃花瓣纯背景底图，${baseConsistency}。删除所有主体实物，但保留原本右侧主体预留位的空间关系、光影层次、台面区域、投影方向和留白结构，方便后期在PS里重新放入商品图。画面不得出现任何主体实物、商品识别元素、文字、数字、水印或促销标签；具体禁用内容见负面提示词。适用于GPT、豆包、即梦、Liblib直接生成无产品底图。`;
+  const negative = uniqueList([
+    ...template.negative,
+    "不要生成文字",
+    "不要生成价格",
+    "不要生成乱码",
+    "不要生成促销标签",
+    "不要生成品牌Logo",
+    "不要生成多余配件",
+    "纯背景版不得出现任何产品",
+    "不要廉价塑料感",
+    "不要背景杂乱",
+    "不要花瓣遮挡后期排版区",
+  ]).join("，");
+
+  return createResult({
+    purpose: "背景图",
+    title: `${data.productType}玻璃花瓣底图关键词`,
+    subtitle: "底图模式：玻璃花瓣产品预览版 + 纯背景版",
+    category: ctx.category,
+    blocks: [
+      section("场景定位", scene),
+      section("构图说明", composition),
+      section("背景元素", elements),
+      section("光影质感", light),
+      section("产品预览版提示词", productPrompt),
+      section("纯背景版提示词", purePrompt),
+      section("负面提示词", negative),
+    ],
+  });
+}
+
+function buildDetailResult(data, ctx) {
+  const prompt = `${data.platform}电商详情页视觉，产品为${data.productType}，围绕${data.corePoint}拆成首屏利益、结构证据、使用场景、权益收口四段。风格为${data.visualStyle}，场景参考${ctx.scenePosition}，光影为${ctx.lighting.join("，")}。每屏只表达一个信息任务，证据包括${ctx.evidence.join("、")}。不要编造未提供的参数、检测数据和权益金额。`;
+  return createResult({
+    purpose: "商详",
+    title: `${data.productType}商详关键词`,
+    subtitle: "单用途输出：只生成商详关键词",
+    category: ctx.category,
+    blocks: [
+      section("商详结构", "首屏核心利益 / 卖点解释 / 证据模块 / 场景模块 / 权益收口。"),
+      section("模块关键词", `核心卖点：${data.corePoint}。辅助卖点：${ctx.selling.slice(1, 5).join(" / ") || "【待补充】"}。证据：${ctx.evidence.join(" / ")}。`),
+      section("视觉建议", `${ctx.scenePosition}；${ctx.backgroundElements.join(" / ")}；${ctx.lighting.join(" / ")}。`),
+      section("AI生图关键词", prompt),
+    ],
+  });
+}
+
+function buildVideoResult(data, ctx) {
+  const prompt = `${data.productType}电商短视频，${data.visualStyle}，${data.platform}平台，5-8秒。镜头1展示${ctx.scenePosition}与主体入场；镜头2特写${ctx.evidence.slice(0, 3).join("、")}证明${data.corePoint}；镜头3用${ctx.backgroundElements.slice(0, 3).join("、")}表现功能结果；镜头4回到稳定主视觉并预留价格权益排版。产品外观不变形，面板清晰，不生成乱码和虚假价格。`;
+  return createResult({
+    purpose: "视频",
+    title: `${data.productType}视频关键词`,
+    subtitle: "单用途输出：只生成视频关键词",
+    category: ctx.category,
+    blocks: [
+      section("视频定位", `${data.platform}电商短视频，强调卖点证据和产品真实质感。`),
+      section("镜头脚本", `1. 场景入场：${ctx.scenePosition}\n2. 局部证据：${ctx.evidence.slice(0, 3).join(" / ")}\n3. 卖点可视化：${data.corePoint}\n4. 收尾：稳定主视觉，预留成交信息。`),
+      section("动态关键词", `${ctx.backgroundElements.join(" / ")} / ${ctx.lighting.join(" / ")} / 柔和推镜 / 局部特写 / 真实接触阴影。`),
+      section("AI视频关键词", prompt),
+    ],
+  });
+}
+
+async function requestApiGenerate(payload) {
+  if (!payload.aiMode) return null;
+  try {
+    const response = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...payload,
+        provider: "deepseek",
+        outputSchema: "visual-assistant-v2",
+        keywordLibraryVersion: keywordData.version,
+      }),
+    });
+    if (!response.ok) throw new Error("API generate failed");
+    return response.json();
+  } catch (error) {
+    showToast("AI接口未接通，已回退词库生成");
+    return null;
+  }
 }
 
 async function buildResults(data) {
   const apiResult = await requestApiGenerate(data);
-  if (apiResult) return apiResult;
+  if (apiResult) return normalizeApiResult(apiResult, data);
 
   generationCount += 1;
-  const category = getCategory(data.productType);
-  const style = keywordData.visualStyles[data.visualStyle] || Object.values(keywordData.visualStyles)[0];
-  const allText = `${data.productType} ${data.points.join(" ")} ${data.appearance}`;
-  const evidenceRules = detectEvidenceRules(allText, category);
-  const directions = keywordData.directions.map((direction, index) =>
-    buildDirection(data, category, style, direction, index, evidenceRules),
-  );
+  const ctx = buildContext(data);
+  if (data.purpose === "背景图") return buildBackgroundResult(data, ctx);
+  if (data.purpose === "商详") return buildDetailResult(data, ctx);
+  if (data.purpose === "视频") return buildVideoResult(data, ctx);
+  return buildMainImageResult(data, ctx);
+}
 
-  const formatGroup = (key) =>
-    directions.map((item) => `${item.name}\n${item[key]}`).join("\n\n--------------------------------\n\n");
+function normalizeApiResult(result, data) {
+  if (result.blocks && result.purpose) return result;
+  const ctx = buildContext(data);
+  return createResult({
+    purpose: data.purpose,
+    title: `${data.productType}${data.purpose}关键词`,
+    subtitle: "AI接口返回内容",
+    category: ctx.category,
+    blocks: [section("AI生成结果", result.text || JSON.stringify(result, null, 2))],
+  });
+}
 
-  return {
-    category,
-    evidenceRules,
-    directions,
-    mainPrompt: formatGroup("mainPrompt"),
-    backgroundPrompt: formatGroup("backgroundPrompt"),
-    layoutAdvice: `词库增强说明：词库仅作为参考素材，本次已按“${data.productType} + ${data.corePoint} + ${data.platform} + ${data.visualStyle}”重新组合扩写。${purposeNote(data.purpose)}\n\n${formatGroup("layoutAdvice")}`,
-    videoPrompt: formatGroup("videoPrompt"),
-  };
+function escapeHtml(text) {
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function renderSectionCard(item) {
+  const index = copyBlocks.push(item.content) - 1;
+  return `
+    <article class="section-card">
+      <div class="section-head">
+        <h4>【${escapeHtml(item.title)}】</h4>
+        <button class="copy" data-copy-index="${index}" type="button">复制</button>
+      </div>
+      <pre>${escapeHtml(item.content)}</pre>
+    </article>
+  `;
+}
+
+function renderBlock(block) {
+  if (block.type === "version") {
+    return `
+      <section class="version-block">
+        <h3 class="version-title">${escapeHtml(block.title)}</h3>
+        ${block.sections.map(renderSectionCard).join("")}
+      </section>
+    `;
+  }
+  return renderSectionCard(block);
 }
 
 function render(results) {
+  currentResults = results;
+  copyBlocks = [];
   $("#emptyState").hidden = true;
   $("#summary").hidden = false;
-  resultCards.forEach((card) => {
-    card.hidden = false;
-  });
-  $("#metricDirections").textContent = results.directions.map((item) => item.name).join(" / ");
+  $("#resultOutput").hidden = false;
+  $("#metricDirections").textContent = results.purpose;
   $("#metricLibrary").textContent = `${keywordData.version} · ${results.category.name}`;
-  $("#metricPrice").textContent = "三方向均保留成交区，不编造金额";
-  $("#metricRisk").textContent = "词库参考 + 相似表达去重复";
-  $("#mainPrompt").textContent = results.mainPrompt;
-  $("#backgroundPrompt").textContent = results.backgroundPrompt;
-  $("#layoutAdvice").textContent = results.layoutAdvice;
-  $("#videoPrompt").textContent = results.videoPrompt;
+  $("#metricPrice").textContent = results.purpose === "背景图" ? "产品版 + 纯背景版" : "仅当前用途";
+  $("#metricRisk").textContent = results.subtitle || "卡片式复制";
+  const allIndex = copyBlocks.push(results.plainText) - 1;
+  $("#resultOutput").innerHTML = `
+    <article class="output-card">
+      <div class="result-head">
+        <div class="result-title">
+          <span class="mark hot"></span>
+          <div>
+            <h3>${escapeHtml(results.title)}</h3>
+            <p class="hint">${escapeHtml(results.subtitle || "")}</p>
+          </div>
+        </div>
+        <button class="copy" data-copy-index="${allIndex}" type="button">复制全部</button>
+      </div>
+      <div class="output-body">
+        ${results.blocks.map(renderBlock).join("")}
+      </div>
+    </article>
+  `;
 }
 
 function showToast(message) {
@@ -295,7 +550,7 @@ function showToast(message) {
 }
 
 async function copyText(text, label = "已复制") {
-  if (!text.trim()) {
+  if (!String(text || "").trim()) {
     showToast("还没有生成内容");
     return;
   }
@@ -310,6 +565,197 @@ async function copyText(text, label = "已复制") {
     document.execCommand("copy");
     helper.remove();
     showToast(label);
+  }
+}
+
+function makeRecord(type, data, results) {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    type,
+    savedAt: new Date().toISOString(),
+    data: compactData(data),
+    results: {
+      purpose: results.purpose,
+      title: results.title,
+      subtitle: results.subtitle,
+      categoryName: results.category.name,
+      blocks: results.blocks,
+      plainText: results.plainText,
+    },
+  };
+}
+
+function addRecord(key, record, limit) {
+  const list = storageGet(key, []);
+  const next = [record, ...list.filter((item) => item.id !== record.id)].slice(0, limit);
+  storageSet(key, next);
+  renderSavedLists();
+}
+
+function renderSavedList(containerId, list, emptyText) {
+  const container = $(containerId);
+  if (!list.length) {
+    container.innerHTML = `<div class="saved-empty">${emptyText}</div>`;
+    return;
+  }
+  container.innerHTML = list
+    .map(
+      (item) => `
+        <button class="saved-item" type="button" data-record-id="${item.id}" data-record-type="${item.type}">
+          <span class="saved-title">${escapeHtml(item.data.productType || "未命名产品")} · ${escapeHtml(item.data.corePoint || "未填卖点")}</span>
+          <span class="saved-meta">${escapeHtml(normalizePurpose(item.data.purpose))} / ${escapeHtml(item.data.visualStyle || "")} / ${formatDate(item.savedAt)}</span>
+        </button>
+      `,
+    )
+    .join("");
+}
+
+function renderSavedLists() {
+  renderSavedList("#recentList", storageGet(STORAGE_KEYS.recent, []), "还没有最近使用");
+  renderSavedList("#historyList", storageGet(STORAGE_KEYS.history, []), "还没有生成历史");
+  renderSavedList("#favoriteList", storageGet(STORAGE_KEYS.favorites, []), "还没有收藏关键词");
+}
+
+function restoreRecord(record) {
+  setFormData(record.data);
+  currentData = record.data;
+  currentResults = {
+    purpose: normalizePurpose(record.results.purpose || record.data.purpose),
+    title: record.results.title || `${record.data.productType}关键词`,
+    subtitle: record.results.subtitle || "历史记录",
+    category: { name: record.results.categoryName || "历史记录" },
+    blocks: record.results.blocks || [section("历史结果", record.results.plainText || "")],
+    plainText: record.results.plainText || flattenBlocks(record.results.blocks || []),
+    directions: [{ name: normalizePurpose(record.results.purpose || record.data.purpose) }],
+    mainPrompt: "",
+    backgroundPrompt: "",
+    layoutAdvice: "",
+    videoPrompt: "",
+  };
+  render(currentResults);
+  showToast("已载入记录");
+}
+
+function findStoredRecord(type, id) {
+  const keyMap = {
+    recent: STORAGE_KEYS.recent,
+    history: STORAGE_KEYS.history,
+    favorite: STORAGE_KEYS.favorites,
+  };
+  return storageGet(keyMap[type], []).find((item) => item.id === id);
+}
+
+function getAllResultText() {
+  return currentResults?.plainText || "";
+}
+
+function buildMarkdown() {
+  if (!currentResults || !currentData) return "";
+  return `# 电商视觉生成结果
+
+- 产品类型：${currentData.productType}
+- 核心卖点：${currentData.corePoint}
+- 平台：${currentData.platform}
+- 视觉风格：${currentData.visualStyle}
+- 输出用途：${currentData.purpose}
+- 生成模式：${currentData.aiMode ? "AI模式" : "词库模式"}
+- 生成时间：${new Date().toLocaleString()}
+
+${currentResults.blocks
+  .map((block) => {
+    if (block.type === "version") {
+      return `## ${block.title}\n\n${block.sections
+        .map((item) => `### ${item.title}\n\n${item.content}`)
+        .join("\n\n")}`;
+    }
+    return `## ${block.title}\n\n${block.content}`;
+  })
+  .join("\n\n")}
+`;
+}
+
+function buildTxt() {
+  if (!currentResults || !currentData) return "";
+  return `电商视觉生成结果
+产品类型：${currentData.productType}
+核心卖点：${currentData.corePoint}
+平台：${currentData.platform}
+视觉风格：${currentData.visualStyle}
+输出用途：${currentData.purpose}
+生成模式：${currentData.aiMode ? "AI模式" : "词库模式"}
+生成时间：${new Date().toLocaleString()}
+
+${currentResults.plainText}`;
+}
+
+function buildExcelHtml() {
+  if (!currentResults || !currentData) return "";
+  const rows = [
+    ["产品类型", currentData.productType],
+    ["核心卖点", currentData.corePoint],
+    ["平台", currentData.platform],
+    ["视觉风格", currentData.visualStyle],
+    ["输出用途", currentData.purpose],
+    ["生成模式", currentData.aiMode ? "AI模式" : "词库模式"],
+  ];
+  currentResults.blocks.forEach((block) => {
+    if (block.type === "version") {
+      block.sections.forEach((item) => rows.push([`${block.title}-${item.title}`, item.content]));
+    } else {
+      rows.push([block.title, block.content]);
+    }
+  });
+  return `<!doctype html><html><head><meta charset="utf-8"></head><body><table border="1">${rows
+    .map((row) => `<tr><th>${escapeHtml(row[0])}</th><td>${escapeHtml(row[1])}</td></tr>`)
+    .join("")}</table></body></html>`;
+}
+
+function downloadFile(filename, content, type) {
+  if (!String(content || "").trim()) {
+    showToast("还没有可导出的结果");
+    return;
+  }
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function safeBase64Encode(value) {
+  return btoa(unescape(encodeURIComponent(JSON.stringify(value))));
+}
+
+function safeBase64Decode(value) {
+  return JSON.parse(decodeURIComponent(escape(atob(value))));
+}
+
+function makeSharePayload() {
+  if (!currentResults || !currentData) return null;
+  return {
+    data: compactData(currentData),
+    results: {
+      purpose: currentResults.purpose,
+      title: currentResults.title,
+      subtitle: currentResults.subtitle,
+      categoryName: currentResults.category.name,
+      blocks: currentResults.blocks,
+      plainText: currentResults.plainText,
+    },
+  };
+}
+
+function restoreShareFromHash() {
+  const match = window.location.hash.match(/^#share=(.+)$/);
+  if (!match) return;
+  try {
+    restoreFromShareData = safeBase64Decode(match[1]);
+  } catch (error) {
+    showToast("分享链接解析失败");
   }
 }
 
@@ -335,11 +781,28 @@ function populateControls() {
 
 async function init() {
   try {
+    restoreShareFromHash();
     const response = await fetch(DATA_URL);
     if (!response.ok) throw new Error(`Failed to load ${DATA_URL}`);
     keywordData = await response.json();
     populateControls();
     $("#libraryStatus").textContent = "词库已加载";
+    renderSavedLists();
+    if (restoreFromShareData) {
+      restoreRecord({
+        id: "share",
+        type: "share",
+        savedAt: new Date().toISOString(),
+        data: restoreFromShareData.data,
+        results: restoreFromShareData.results,
+      });
+    } else {
+      const lastForm = storageGet(STORAGE_KEYS.lastForm, null);
+      if (lastForm) {
+        setFormData(lastForm);
+        showToast("已恢复上次输入");
+      }
+    }
   } catch (error) {
     $("#libraryStatus").textContent = "词库加载失败";
     $("#libraryStatus").classList.add("error");
@@ -356,39 +819,45 @@ $("#keywordForm").addEventListener("submit", async (event) => {
     return;
   }
   const data = getFormData();
+  currentData = data;
+  saveLastForm();
   const results = await buildResults(data);
   render(results);
+  const record = makeRecord("history", data, results);
+  addRecord(STORAGE_KEYS.history, record, 30);
+  addRecord(STORAGE_KEYS.recent, { ...record, type: "recent" }, 12);
 });
 
 document.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-copy]");
-  if (!button) return;
-  const id = button.dataset.copy;
-  copyText($(`#${id}`).textContent, "已复制该结果");
+  const copyButton = event.target.closest("[data-copy-index]");
+  if (copyButton) {
+    copyText(copyBlocks[Number(copyButton.dataset.copyIndex)] || "", "已复制该卡片");
+    return;
+  }
+  const item = event.target.closest(".saved-item");
+  if (!item) return;
+  const record = findStoredRecord(item.dataset.recordType, item.dataset.recordId);
+  if (record) restoreRecord(record);
 });
 
 $("#copyMain").addEventListener("click", () => {
-  copyText($("#mainPrompt").textContent, "已复制主图提示词");
+  copyText(getAllResultText(), "已复制当前结果");
 });
 
 $("#copyAll").addEventListener("click", () => {
-  const all = ["mainPrompt", "backgroundPrompt", "layoutAdvice", "videoPrompt"]
-    .map((id) => $(`#${id}`).textContent.trim())
-    .filter(Boolean)
-    .join("\n\n--------------------------------\n\n");
-  copyText(all, "已复制全部结果");
+  copyText(getAllResultText(), "已复制全部结果");
 });
 
 $("#clearAll").addEventListener("click", () => {
   $("#keywordForm").reset();
   $("#emptyState").hidden = false;
   $("#summary").hidden = true;
-  resultCards.forEach((card) => {
-    card.hidden = true;
-  });
-  ["mainPrompt", "backgroundPrompt", "layoutAdvice", "videoPrompt"].forEach((id) => {
-    $(`#${id}`).textContent = "";
-  });
+  $("#resultOutput").hidden = true;
+  $("#resultOutput").innerHTML = "";
+  currentData = null;
+  currentResults = null;
+  copyBlocks = [];
+  localStorage.removeItem(STORAGE_KEYS.lastForm);
   showToast("已清空");
 });
 
@@ -404,9 +873,61 @@ $("#loadDemo").addEventListener("click", async () => {
   $("#campaign").value = "618活动到手价";
   $("#benefits").value = "晒单返现【真实金额】；赠品【真实赠品】；价保【真实天数】";
   $("#appearance").value =
-    "白色电饭煲，正面控制面板清晰，锅盖弧度、开盖结构、品牌Logo位置、内胆和沥糖釜真实，产品比例不能改变";
-  document.querySelector("input[name='purpose'][value='主图']").checked = true;
-  render(await buildResults(getFormData()));
+    "白色电饭煲，正面控制面板清晰，锅盖弧度、开盖结构、品牌Logo位置、内胆和沥糖釜真实，比例不能改变";
+  document.querySelector("input[name='purpose'][value='底图']").checked = true;
+  currentData = getFormData();
+  const results = await buildResults(currentData);
+  render(results);
+  const record = makeRecord("history", currentData, results);
+  addRecord(STORAGE_KEYS.history, record, 30);
+  addRecord(STORAGE_KEYS.recent, { ...record, type: "recent" }, 12);
+  saveLastForm();
+});
+
+$("#keywordForm").addEventListener("input", () => {
+  window.clearTimeout(saveLastForm.timer);
+  saveLastForm.timer = window.setTimeout(saveLastForm, 250);
+});
+
+$("#keywordForm").addEventListener("change", saveLastForm);
+
+$("#favoriteCurrent").addEventListener("click", () => {
+  if (!currentResults || !currentData) {
+    showToast("还没有可收藏的结果");
+    return;
+  }
+  addRecord(STORAGE_KEYS.favorites, makeRecord("favorite", currentData, currentResults), 50);
+  showToast("已收藏");
+});
+
+$("#exportMarkdown").addEventListener("click", () => {
+  downloadFile("ecommerce-visual-keywords.md", buildMarkdown(), "text/markdown;charset=utf-8");
+});
+
+$("#exportTxt").addEventListener("click", () => {
+  downloadFile("ecommerce-visual-keywords.txt", buildTxt(), "text/plain;charset=utf-8");
+});
+
+$("#exportExcel").addEventListener("click", () => {
+  downloadFile("ecommerce-visual-keywords.xls", buildExcelHtml(), "application/vnd.ms-excel;charset=utf-8");
+});
+
+$("#shareResult").addEventListener("click", async () => {
+  const payload = makeSharePayload();
+  if (!payload) {
+    showToast("还没有可分享的结果");
+    return;
+  }
+  const url = `${window.location.origin}${window.location.pathname}#share=${safeBase64Encode(payload)}`;
+  await copyText(url, "分享链接已复制");
+});
+
+$("#clearSavedData").addEventListener("click", () => {
+  [STORAGE_KEYS.history, STORAGE_KEYS.favorites, STORAGE_KEYS.recent, STORAGE_KEYS.lastForm].forEach((key) =>
+    localStorage.removeItem(key),
+  );
+  renderSavedLists();
+  showToast("本地记录已清空");
 });
 
 init();

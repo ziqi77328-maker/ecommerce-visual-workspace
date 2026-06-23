@@ -10,9 +10,9 @@
     <main class="app">
       <header class="topbar">
         <div>
-          <div class="eyebrow">团队网页版 · 词库增强 · AI扩写预留</div>
+          <div class="eyebrow">电商视觉生成助手 · V2</div>
           <h1>电商AI关键词生成器</h1>
-          <p class="lead">词库只做参考，基于产品、卖点、平台和风格重新组合，输出三种可落地方向。</p>
+          <p class="lead">按输出用途精准生成。底图模式优先支持产品预览版与纯背景版。</p>
         </div>
         <div class="toolbar">
           <button class="btn ghost" id="loadDemo" type="button">套用示例</button>
@@ -73,28 +73,74 @@
               <textarea id="appearance" placeholder="可选：颜色、材质、Logo、面板、把手、门体、杯体、内胆等真实结构"></textarea>
             </label>
 
-            <div class="form-actions">
-              <button class="btn primary" id="generateBtn" type="submit">生成关键词</button>
-              <button class="btn ghost" id="copyMain" type="button">复制主图</button>
+            <div class="switch-row">
+              <label class="switch">
+                <input id="aiMode" type="checkbox" />
+                <span class="switch-slider"></span>
+              </label>
+              <div>
+                <strong>AI模式</strong>
+                <p class="hint">预留 DeepSeek API。未接后端时会自动回退到词库增强生成。</p>
+              </div>
             </div>
 
-            <p class="hint api-hint">已预留 <code>/api/generate</code> 接口位置。以后接 GPT API 时，API Key 必须放后端，不能写在前端。</p>
+            <div class="form-actions">
+              <button class="btn primary" id="generateBtn" type="submit">生成关键词</button>
+              <button class="btn ghost" id="copyMain" type="button">复制当前结果</button>
+            </div>
+
+            <p class="hint api-hint">已预留 <code>/api/generate</code> 接口位置。以后接 DeepSeek API 时，API Key 必须放后端，不能写在前端。</p>
           </form>
+
+          <section class="team-panel">
+            <div class="team-panel-head">
+              <h3>团队使用</h3>
+              <button class="text-button" id="clearSavedData" type="button">清空本地记录</button>
+            </div>
+            <div class="mini-actions">
+              <button class="mini-button" id="favoriteCurrent" type="button">收藏结果</button>
+              <button class="mini-button" id="shareResult" type="button">分享链接</button>
+              <button class="mini-button" id="exportMarkdown" type="button">导出 Markdown</button>
+              <button class="mini-button" id="exportTxt" type="button">导出 TXT</button>
+              <button class="mini-button" id="exportExcel" type="button">导出 Excel</button>
+            </div>
+          </section>
+
+          <section class="team-panel compact-list-panel">
+            <div class="team-panel-head">
+              <h3>最近使用</h3>
+            </div>
+            <div class="saved-list" id="recentList"></div>
+          </section>
+
+          <section class="team-panel compact-list-panel">
+            <div class="team-panel-head">
+              <h3>历史记录</h3>
+            </div>
+            <div class="saved-list" id="historyList"></div>
+          </section>
+
+          <section class="team-panel compact-list-panel">
+            <div class="team-panel-head">
+              <h3>收藏关键词</h3>
+            </div>
+            <div class="saved-list" id="favoriteList"></div>
+          </section>
         </aside>
 
         <section class="result-grid">
           <div class="summary" id="summary" hidden>
             <div class="metric">
-              <b>输出方向</b>
-              <span id="metricDirections">稳妥 / 特效 / 质感</span>
+              <b>当前用途</b>
+              <span id="metricDirections">单用途输出</span>
             </div>
             <div class="metric">
               <b>词库来源</b>
               <span id="metricLibrary">外置 JSON</span>
             </div>
             <div class="metric">
-              <b>成交模块</b>
-              <span id="metricPrice">保留价格权益</span>
+              <b>输出结构</b>
+              <span id="metricPrice">卡片式结果</span>
             </div>
             <div class="metric">
               <b>生成策略</b>
@@ -105,53 +151,11 @@
           <div class="panel empty" id="emptyState">
             <div>
               <h2>填入产品信息后生成</h2>
-              <p>页面会读取 <code>data/keywords.json</code>，把词库作为参考素材，生成稳妥电商款、高点击特效款、高级质感款三种方向。</p>
+              <p>选择主图、底图、商详或视频后，只输出对应内容。底图会生成产品预览版和纯背景版两套一致场景关键词。</p>
             </div>
           </div>
 
-          <article class="result-card" hidden>
-            <div class="result-head">
-              <div class="result-title">
-                <span class="mark hot"></span>
-                <h3>三方向主图提示词</h3>
-              </div>
-              <button class="copy" data-copy="mainPrompt" type="button">复制</button>
-            </div>
-            <pre id="mainPrompt"></pre>
-          </article>
-
-          <article class="result-card" hidden>
-            <div class="result-head">
-              <div class="result-title">
-                <span class="mark green"></span>
-                <h3>三方向无字底图提示词</h3>
-              </div>
-              <button class="copy" data-copy="backgroundPrompt" type="button">复制</button>
-            </div>
-            <pre id="backgroundPrompt"></pre>
-          </article>
-
-          <article class="result-card" hidden>
-            <div class="result-head">
-              <div class="result-title">
-                <span class="mark gold"></span>
-                <h3>三方向卖点排版建议</h3>
-              </div>
-              <button class="copy" data-copy="layoutAdvice" type="button">复制</button>
-            </div>
-            <pre id="layoutAdvice"></pre>
-          </article>
-
-          <article class="result-card" hidden>
-            <div class="result-head">
-              <div class="result-title">
-                <span class="mark"></span>
-                <h3>三方向豆包视频关键词</h3>
-              </div>
-              <button class="copy" data-copy="videoPrompt" type="button">复制</button>
-            </div>
-            <pre id="videoPrompt"></pre>
-          </article>
+          <div class="result-output" id="resultOutput" hidden></div>
         </section>
       </section>
     </main>
