@@ -234,6 +234,10 @@ body[data-mode="background"] .layout {
   grid-template-columns: minmax(560px, 720px) minmax(360px, 1fr);
 }
 
+body[data-mode="background"] .input-panel {
+  position: static;
+}
+
 .panel,
 .result-card {
   background: rgba(255, 255, 255, 0.92);
@@ -245,7 +249,7 @@ body[data-mode="background"] .layout {
 .input-panel {
   position: sticky;
   top: 16px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .panel-head {

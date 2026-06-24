@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>电商AI关键词生成器</title>
-    <link rel="stylesheet" href="./style.css?v=2.1.2" />
+    <link rel="stylesheet" href="./style.css?v=2.1.8" />
   </head>
   <body>
     <section class="auth-screen" id="authScreen">
@@ -131,8 +131,13 @@
               </label>
 
               <label class="field">
-                <span>构图规则</span>
-                <div class="chip-grid card-grid" id="layoutRuleChips"></div>
+                <span>主构图</span>
+                <div class="chip-grid card-grid" id="mainLayoutChips"></div>
+              </label>
+
+              <label class="field">
+                <span>辅助构图</span>
+                <div class="chip-grid card-grid" id="assistLayoutChips"></div>
               </label>
 
               <label class="field">
@@ -243,6 +248,6 @@
     </main>
 
     <div class="toast" id="toast">已复制</div>
-    <script src="./script.js?v=2.1.2" defer></script>
+    <script src="./script.js?v=2.1.8" defer></script>
   </body>
 </html>

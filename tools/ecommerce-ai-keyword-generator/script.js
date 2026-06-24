@@ -38,15 +38,18 @@ const QUICK_BACKGROUND_STYLES = [
   "抽象棚拍",
 ];
 const QUICK_TONES = ["浅金", "米白", "银灰", "浅灰蓝", "奶油白", "香槟金", "黑金", "青瓷蓝", "暖木色", "冷白科技", "低饱和高级灰"];
-const QUICK_LAYOUT_RULES = [
-  "右侧预留产品位",
+const MAIN_LAYOUT_RULES = [
+  "右侧产品占位",
   "居中主视觉",
-  "左侧预留标题区",
+  "左侧产品占位",
+];
+const ASSIST_LAYOUT_RULES = [
   "底部预留价格区",
   "右下角留白",
+  "证据模块区",
   "大面积留白",
-  "台面前景空间",
-  "证据模块预留区",
+  "前景台面空间",
+  "台面展示区",
 ];
 const BACKGROUND_STYLE_MAP = {
   晶钛空间: "晶钛金属",
@@ -189,8 +192,27 @@ function getSelectedTone() {
   return uniqueList([...selectedChipValues("#toneChips"), ...splitPoints($("#bgToneCustom")?.value || "")]).join(" + ") || "浅金";
 }
 
+function selectedRadioValue(containerId, fallback) {
+  return document.querySelector(`${containerId} input:checked`)?.value || fallback;
+}
+
+function getSelectedMainLayoutRule() {
+  return selectedRadioValue("#mainLayoutChips", "右侧产品占位");
+}
+
+function getSelectedAssistLayoutRules() {
+  return uniqueList(selectedChipValues("#assistLayoutChips"));
+}
+
 function getSelectedLayoutRules() {
-  return uniqueList(selectedChipValues("#layoutRuleChips")).slice(0, 1);
+  return uniqueList([getSelectedMainLayoutRule(), ...getSelectedAssistLayoutRules()]);
+}
+
+function normalizeMainLayoutName(name) {
+  const value = String(name || "");
+  if (value.includes("居中")) return "居中主视觉";
+  if (value.includes("左侧产品") || value.includes("左侧主体")) return "左侧产品占位";
+  return "右侧产品占位";
 }
 
 function getFormData() {
@@ -208,6 +230,8 @@ function getFormData() {
     visualStyle: isBackground ? primaryBackgroundStyle() : $("#visualStyle").value,
     backgroundStyles,
     tone: isBackground ? getSelectedTone() : "",
+    mainLayoutRule: isBackground ? getSelectedMainLayoutRule() : "",
+    assistLayoutRules: isBackground ? getSelectedAssistLayoutRules() : [],
     layoutRules: isBackground ? getSelectedLayoutRules() : [],
     productDisplay: $("#productDisplay").value || DEFAULT_DISPLAY_MODE,
     purpose,
@@ -271,6 +295,8 @@ function compactData(data) {
     visualStyle: data.visualStyle,
     backgroundStyles: data.backgroundStyles,
     tone: data.tone,
+    mainLayoutRule: data.mainLayoutRule,
+    assistLayoutRules: data.assistLayoutRules,
     layoutRules: data.layoutRules,
     productDisplay: data.productDisplay || DEFAULT_DISPLAY_MODE,
     purpose: normalizePurpose(data.purpose),
@@ -416,8 +442,8 @@ function defaultLayoutsFor(data) {
   const layouts = [];
   const names = knowledgeItems("layoutRules");
   const byId = (id) => names.find((item) => item.id === id);
-  if (data.layoutRules?.length) {
-    return matchKnowledge("layoutRules", data.layoutRules, 1);
+  if (data.mainLayoutRule) {
+    return matchKnowledge("layoutRules", [data.mainLayoutRule, ...(data.assistLayoutRules || [])], 8);
   }
   if (data.purpose === "背景图") {
     layouts.push(byId("right-product-position"));
@@ -437,6 +463,8 @@ function buildKnowledgeContext(data) {
     data.visualStyle,
     backgroundStyleText,
     data.tone,
+    data.mainLayoutRule,
+    ...(data.assistLayoutRules || []),
     ...(data.layoutRules || []),
     data.platform,
     data.purpose,
@@ -444,7 +472,9 @@ function buildKnowledgeContext(data) {
   const productTypes = matchKnowledge("productTypes", [data.productType, data.corePoint, data.points.join(" ")], 3);
   const sellingPoints = matchKnowledge("sellingPoints", [data.corePoint, data.points.join(" "), data.productType], 8);
   const sceneTemplates = matchKnowledge("sceneTemplates", [data.visualStyle, backgroundStyleText, data.tone, data.productType, data.corePoint], 4);
-  const explicitLayouts = data.layoutRules?.length ? matchKnowledge("layoutRules", data.layoutRules, 1) : matchKnowledge("layoutRules", searchTexts, 6);
+  const explicitLayouts = data.mainLayoutRule
+    ? matchKnowledge("layoutRules", [data.mainLayoutRule, ...(data.assistLayoutRules || [])], 8)
+    : matchKnowledge("layoutRules", searchTexts, 6);
   const layoutRules = uniqueList([...defaultLayoutsFor(data), ...explicitLayouts].map((item) => item.name)).map((name) =>
     [...defaultLayoutsFor(data), ...explicitLayouts].find((item) => item.name === name),
   );
@@ -535,6 +565,23 @@ function isInductionCooker(data) {
   return /电磁炉|电磁灶|火锅炉/.test(data.productType || "");
 }
 
+function searchDisplayRules(data) {
+  if (!isInductionCooker(data)) return [];
+  return [
+    "展示方式：搜索主图展示",
+    "京东搜索主图风格",
+    "电商商品摄影",
+    "产品展示状态",
+    "非使用状态",
+    "非烹饪状态",
+    "非生活场景",
+    "商品陈列展示",
+    "产品主体展示",
+    "搜索结果页主图风格",
+    "参考京东电磁炉搜索结果主图，而非厨房生活场景图",
+  ];
+}
+
 function isCompleteProductMode(data) {
   return (data.productDisplay || DEFAULT_DISPLAY_MODE) === DEFAULT_DISPLAY_MODE;
 }
@@ -544,11 +591,27 @@ function displayConstraintText(data) {
   const inductionRules = isInductionCooker(data)
     ? [
         "电磁炉规则优先级高于通用家电规则",
+        "产品特殊规则优先级高于场景规则和通用规则",
+        ...searchDisplayRules(data),
+        "电磁炉采用电商搜索主图展示方式",
+        "不是生活场景拍摄",
+        "不是厨房使用状态",
+        "不是料理场景",
+        "不是烹饪过程",
+        "不是放置在操作台上的真实使用状态",
         "采用京东搜索页站立式产品展示逻辑",
+        "产品主体必须站立展示",
+        "类似手机、电视、显示器的商品展示逻辑",
+        "产品底部接触台面",
         "产品正面朝向用户",
         "完整展示圆形加热区域、控制面板、品牌区域和产品主体外轮廓",
-        "圆形加热区域必须完整展示，优先位于视觉中心",
-        "主体占画面45%-65%，搜索主图优先50%-65%",
+        "完整圆形加热区域",
+        "完整圆环",
+        "加热区域完整可见",
+        "控制面板完整可见",
+        "产品轮廓完整可见",
+        "圆形加热区域必须完整展示，圆环完整可见，优先位于视觉中心",
+        "主体占画面50%-65%",
         "优先正视角、轻微透视角或5°以内轻俯视",
       ]
     : [];
@@ -564,10 +627,18 @@ function displayNegativeText(data) {
         "大角度俯视",
         "真实厨房使用状态",
         "真实烹饪状态",
+        "平放使用状态",
         "锅具覆盖主体",
+        "锅具覆盖加热区域",
+        "厨房操作过程",
+        "生活场景摆拍",
+        "人物使用场景",
+        "料理制作过程",
         "仅展示加热区域局部",
+        "仅展示局部区域",
         "裁切圆形加热区域",
         "圆环被标题遮挡",
+        "文字遮挡加热区域",
         "圆环被锅具遮挡",
       ]
     : [];
@@ -595,8 +666,34 @@ function joinText(items) {
   return uniqueList(items).filter(Boolean).join("，");
 }
 
+function continuousCounterLines() {
+  return [
+    "厨房岛台从画面底部延伸至左右边缘",
+    "同一张连续工作台面",
+    "完整厨房操作台",
+    "前景与中景属于同一连续台面",
+    "前景台面与产品台面属于同一结构",
+    "无断层",
+    "无遮挡视线",
+    "无第二张桌子",
+    "无独立餐桌",
+    "无新增前景桌体",
+    "形成完整厨房工作台空间",
+  ];
+}
+
+function counterNegativeLines() {
+  return [
+    "禁止新增第二张桌子",
+    "禁止新增独立餐桌",
+    "禁止新增前景桌体",
+    "禁止悬浮台面",
+    "禁止前后景断层",
+  ];
+}
+
 function primaryLayoutRule(data) {
-  return data.layoutRules?.[0] || (data.purpose === "背景图" ? "右侧预留产品位" : "左文右图");
+  return data.mainLayoutRule || data.layoutRules?.[0] || (data.purpose === "背景图" ? "右侧产品占位" : "左文右图");
 }
 
 function productCompositionLines(data) {
@@ -606,13 +703,15 @@ function productCompositionLines(data) {
       "仅采用居中主视觉构图",
       "主体位于画面中心",
       "左右视觉平衡",
-      "标题环绕主体布局",
+      "中心聚焦",
+      "环绕式布局",
+      "主体居中展示",
       "构图逻辑保持单一，不混入其它构图描述",
     ];
   }
   if (rule.includes("右侧")) {
     return [
-      "仅采用右侧产品位构图",
+      "仅采用右侧产品占位主构图",
       "右侧或中右侧形成明确产品展示区",
       "左侧可作为标题与卖点排版区",
       "构图逻辑保持单一，不混入其它构图描述",
@@ -620,33 +719,38 @@ function productCompositionLines(data) {
   }
   if (rule.includes("左侧")) {
     return [
-      "仅采用左侧标题区构图",
-      "左侧保留明确标题和卖点排版区",
-      "产品区避开左侧标题区域",
-      "构图逻辑保持单一，不混入其它构图描述",
-    ];
-  }
-  if (rule.includes("底部")) {
-    return [
-      "仅采用底部信息区构图",
-      "底部保留成交信息排版区",
-      "主体上移并避开底部信息区",
-      "构图逻辑保持单一，不混入其它构图描述",
-    ];
-  }
-  if (rule.includes("右下")) {
-    return [
-      "仅采用右下角留白构图",
-      "右下角保留干净证据或后期合成留白",
-      "主体避开右下角留白区",
+      "仅采用左侧产品占位主构图",
+      "产品主体位于左侧或中左侧",
+      "右侧可作为标题与卖点排版区",
       "构图逻辑保持单一，不混入其它构图描述",
     ];
   }
   return [`仅采用${rule}构图`, `${rule}为唯一构图规则`, "不混入其它构图逻辑"];
 }
 
+function assistCompositionLines(data) {
+  const rules = data.assistLayoutRules || [];
+  const lines = [];
+  if (rules.includes("底部预留价格区")) {
+    lines.push("底部保留价格权益区，高度控制在画面14%-18%，不得遮挡主体关键结构");
+  }
+  if (rules.includes("右下角留白")) {
+    lines.push("右下角保留干净留白，可用于证据模块或后期信息排版");
+  }
+  if (rules.includes("证据模块区")) {
+    lines.push("证据模块靠近产品但不压住主体，不遮挡Logo、控制面板和关键功能区域");
+  }
+  if (rules.includes("大面积留白")) {
+    lines.push("画面保留大面积干净可排版空间，信息层级清晰不拥挤");
+  }
+  if (rules.includes("前景台面空间") || rules.includes("台面展示区")) {
+    lines.push(...continuousCounterLines());
+  }
+  return uniqueList(lines);
+}
+
 function pureCompositionLines(data) {
-  return productCompositionLines(data).map(pureLayoutText);
+  return [...productCompositionLines(data), ...assistCompositionLines(data)].map(pureLayoutText);
 }
 
 function productAreaLines(data) {
@@ -659,25 +763,49 @@ function productAreaLines(data) {
       "标题和证据围绕主体安全排布，不遮挡主体关键区域",
     ];
   }
-  if (rule.includes("右下")) {
+  if (rule.includes("左侧")) {
     return [
-      "产品预览避开右下角留白区",
-      "右下角保留后期证据模块空间",
+      "产品预览位于左侧或中左侧",
+      "主体占画面约50%-60%",
+      "右侧信息区不得压住主体关键结构",
       "主体保持清晰完整并有真实接触阴影",
     ];
   }
-  if (rule.includes("底部")) {
+  if (rule.includes("右侧")) {
     return [
-      "产品预览避开底部信息区",
-      "底部信息区不遮挡产品关键结构",
+      "产品预览位于右侧或中右侧",
+      "主体占画面约50%-60%",
+      "左侧信息区不得压住主体关键结构",
       "主体保持清晰完整并有真实接触阴影",
     ];
   }
   return [
-    "产品摆放区域固定在右侧或中右侧",
-    "商品底部落在台面上，有真实投影和接触阴影",
-    "商品后方背光、前方台面反射、周围空间透视保持一致",
+    "产品预览遵循当前主构图",
+    "主体保持清晰完整并有真实接触阴影",
   ];
+}
+
+function blankAreaLines(data) {
+  const rule = primaryLayoutRule(data);
+  const lines = [];
+  if (rule.includes("居中")) {
+    lines.push("标题和卖点围绕中心主体布局", "左右留白保持视觉平衡", "不得把主体挤到画面右侧或左侧");
+  } else if (rule.includes("左侧")) {
+    lines.push("右侧预留标题与卖点排版区", "左侧主体周围保留安全距离");
+  } else {
+    lines.push("左侧预留标题与卖点排版区", "右侧主体周围保留安全距离");
+  }
+  if ((data.assistLayoutRules || []).includes("底部预留价格区")) {
+    lines.push("底部预留14%-18%价格权益区");
+  }
+  if ((data.assistLayoutRules || []).includes("右下角留白")) {
+    lines.push("右下角留白用于证据模块或后期信息排版");
+  }
+  if ((data.assistLayoutRules || []).includes("大面积留白")) {
+    lines.push("保留大面积干净可排版留白");
+  }
+  lines.push("留白是可排版的干净空间，不是空白无场景", "留白区域内不得生成文字、数字、伪文字和促销标签");
+  return uniqueList(lines);
 }
 
 function buildSceneBlueprint(data, ctx, options = {}) {
@@ -693,12 +821,20 @@ function buildSceneBlueprint(data, ctx, options = {}) {
     "真实商业摄影棚拍质感",
     "后期可直接排版主图信息",
   ];
+  if (isInductionCooker(data)) {
+    commercialBase.push(
+      "产品特殊规则优先级高于场景规则和通用规则",
+      "厨房只作为背景空间，不生成真实使用状态",
+      "商品摄影展示状态，不是生活场景摆拍",
+    );
+  }
   const sceneTone = isGlassPetal
     ? ["玻璃花瓣高质感场景", "浅金/米白/银灰统一空间", "现代厨房与抽象棚拍融合"]
     : pick(sceneSource, seed, 3);
   const spatialBase = [
-    "画面分为前景台面层、中景展示层、后景氛围层",
+    "画面分为连续工作台面层、中景展示层、后景氛围层",
     ...productCompositionLines(data),
+    ...assistCompositionLines(data),
     "空间透视稳定，台面水平线清楚",
   ];
   const lightBase = [
@@ -710,21 +846,25 @@ function buildSceneBlueprint(data, ctx, options = {}) {
   ];
   const foreground = isGlassPetal
     ? [
-        "前景为干净浅色台面",
-        "台面边缘有轻微反射和真实阴影承接",
+        "前景来自同一张连续厨房岛台",
+        "连续工作台面边缘有轻微反射和真实阴影承接",
         "少量半透明玻璃花瓣只做边缘点缀",
         "右下角保留干净空位，方便后期放证据模块",
+        ...continuousCounterLines(),
+        ...counterNegativeLines(),
       ]
     : [
-        "前景为干净商业台面或浅色厨房台面",
-        "台面有轻微反射和真实接触阴影",
+        "前景来自同一张连续厨房岛台或完整厨房操作台",
+        "连续工作台面有轻微反射和真实接触阴影",
         "可加入少量低干扰生活道具",
-        "前景元素尺寸低于商品位，不抢主体",
+        "前景元素尺寸低于商品展示区，不抢主体",
+        ...continuousCounterLines(),
+        ...counterNegativeLines(),
       ];
   const midground = [
     "中景是画面视觉中心和商品承载区",
-    "商品位位于右侧或中右侧，占画面约50%-55%",
-    "预览版放完整商品摄影主体，纯背景版保留同样空间占位和光影关系",
+    ...productAreaLines(data),
+    "预览版放完整商品摄影主体，纯背景版保留同样空间关系和光影关系",
     "商品区边缘有轮廓光、台面投影和轻微反射",
     "不让装饰、花瓣、粒子或光效穿过控制面板与Logo区域",
   ];
@@ -755,13 +895,7 @@ function buildSceneBlueprint(data, ctx, options = {}) {
         "点缀色只用于少量光效和成交氛围",
         "色彩不做单一素材堆叠，必须形成完整空间关系",
       ];
-  const blank = [
-    "左侧预留标题区，约占画面宽度30%-38%",
-    "底部预留15%-18%价格权益区",
-    "顶部保留品牌或平台背书安全区",
-    "留白是可排版的干净空间，不是空白无场景",
-    "留白区域内不得生成文字、数字、伪文字和促销标签",
-  ];
+  const blank = blankAreaLines(data);
   const productArea = [
     ...productAreaLines(data),
     "纯背景版删除商品后，仍保留商品位的空间关系、台面区域和光影层次",
@@ -812,11 +946,9 @@ function buildPureBackgroundBlueprint(data, ctx, options = {}) {
   const space = [
     "画面分为干净台面层、空白留区层、背景氛围层",
     ...layoutRules,
-    "右侧保留大面积干净留白区域，用于后期合成",
-    "右侧为空台面和背景空间，不出现任何实体物体",
-    "画面中心偏右保留光影聚焦区域，但不得生成任何主体",
-    "左侧保留标题和卖点排版空白留区",
-    "底部保留15%-18%后期成交信息留区",
+    ...blankAreaLines(data).map(pureLayoutText),
+    "后期合成区域为空台面和背景空间，不出现任何实体物体",
+    "画面保留光影聚焦区域，但不得生成任何主体",
   ];
   const light = [
     ...pick(textureSource, seed + 1, 4),
@@ -826,9 +958,11 @@ function buildPureBackgroundBlueprint(data, ctx, options = {}) {
     "光影层次清楚，亮部不过曝，暗部不脏灰",
   ];
   const foreground = [
-    "前景只保留干净台面",
-    "台面有轻微材质反射",
+    "前景只保留同一张连续厨房岛台或完整厨房操作台",
+    "连续工作台面有轻微材质反射",
     "台面边缘清晰但低干扰",
+    ...continuousCounterLines(),
+    ...counterNegativeLines(),
     "不摆放餐具、食物、瓶罐、包装或装饰摆件",
   ];
   const background = [
@@ -846,10 +980,9 @@ function buildPureBackgroundBlueprint(data, ctx, options = {}) {
   ];
   const blank = [
     ...layoutRules.map((item) => `${item}必须保持干净可用`),
-    "右侧大面积干净留白区域用于后期合成",
-    "中心偏右仅保留光影聚焦和空间透视",
-    "左侧留白用于后期标题和卖点",
-    "底部留白用于后期信息排版",
+    "大面积干净留白区域用于后期合成",
+    "仅保留光影聚焦和空间透视",
+    ...blankAreaLines(data).map(pureLayoutText),
     "所有留白区域不得生成文字、数字、图标、标签或可识别物体",
   ];
 
@@ -1011,8 +1144,9 @@ function buildMainImageResult(data, ctx) {
   const title = `${data.productType}产品预览版关键词`;
   const displayRule = displayConstraintText(data);
   const displayNegative = displayNegativeText(data);
-  const subjectRatio = isInductionCooker(data) ? "主体占画面45%-65%，搜索主图优先50%-65%" : "主体占画面45%-60%";
-  const prompt = `${data.platform}电商主图，${data.productType}，核心卖点“${data.corePoint}”。${ctx.scenePosition}，${ctx.layout.join("，")}。${subjectRatio}，真实清晰，${displayRule}${ctx.lighting.join("，")}。卖点区只表达${data.corePoint}，辅助卖点包含${ctx.selling.slice(1, 5).join("、") || "【辅助卖点】"}。证据区使用${ctx.evidence.slice(0, 4).join("、")}证明卖点。底部成交区写${data.campaign}，到手价 ¥【真实价格】，${data.benefits}。禁止产品变形、Logo错误、控制面板模糊、文字乱码、参数臆造、背景抢主体、${displayNegative}、${ctx.knowledge.negativeTerms.slice(0, 10).join("、")}。`;
+  const subjectRatio = isInductionCooker(data) ? "主体占画面50%-65%" : "主体占画面45%-60%";
+  const priorityRule = isInductionCooker(data) ? "产品特殊规则 > 场景规则 > 通用规则。厨房只作为背景，不改变商品摄影展示状态。" : "";
+  const prompt = `${data.platform}电商主图，${data.productType}，核心卖点“${data.corePoint}”。${priorityRule}${displayRule}${ctx.scenePosition}，${ctx.layout.join("，")}。${subjectRatio}，真实清晰，${ctx.lighting.join("，")}。卖点区只表达${data.corePoint}，辅助卖点包含${ctx.selling.slice(1, 5).join("、") || "【辅助卖点】"}。证据区使用${ctx.evidence.slice(0, 4).join("、")}证明卖点。底部成交区写${data.campaign}，到手价 ¥【真实价格】，${data.benefits}。禁止产品变形、Logo错误、控制面板模糊、文字乱码、参数臆造、背景抢主体、${displayNegative}、${ctx.knowledge.negativeTerms.slice(0, 10).join("、")}。`;
   return createResult({
     purpose: "主图",
     title,
@@ -1020,10 +1154,10 @@ function buildMainImageResult(data, ctx) {
     category: ctx.category,
     blocks: [
       ...knowledgeSummarySections(ctx.knowledge),
-      section("主图定位", `${data.platform}平台转化主图，目标是第一眼看懂产品、卖点和成交理由。`),
+      section("主图定位", `${data.platform}平台转化主图，目标是第一眼看懂产品、卖点和成交理由。${isInductionCooker(data) ? "电磁炉必须按京东搜索结果页商品摄影展示方式处理，不按厨房真实使用状态处理。" : ""}`),
       section("构图建议", `${ctx.layout.join("；")}；底部价格权益区控制在画面14%-18%；${isInductionCooker(data) ? "电磁炉主体占画面45%-65%，圆形加热区域不得被裁切或遮挡。" : "产品主体不可低于45%。"}`),
       section("卖点层级", `核心卖点：${data.corePoint}。辅助卖点：${ctx.selling.slice(1, 5).join(" / ") || "【待补充】"}。同一卖点不得重复出现在标题、贴片和价格区。`),
-      section("证据与约束", `证据优先使用：${ctx.evidence.join(" / ")}。展示方式：${data.productDisplay}。${displayRule}产品约束：${data.appearance}。`),
+      section("证据与约束", `证据优先使用：${ctx.evidence.join(" / ")}。展示方式：${isInductionCooker(data) ? "搜索主图展示" : data.productDisplay}。${displayRule}产品约束：${data.appearance}。`),
       section("AI生图关键词", prompt),
     ],
   });
@@ -1289,22 +1423,49 @@ function showToast(message) {
 }
 
 async function copyText(text, label = "已复制") {
-  if (!String(text || "").trim()) {
+  const value = String(text || "").trim();
+  if (!value) {
     showToast("还没有生成内容");
     return;
   }
-  try {
-    await navigator.clipboard.writeText(text);
-    showToast(label);
-  } catch (error) {
-    const helper = document.createElement("textarea");
-    helper.value = text;
-    document.body.appendChild(helper);
-    helper.select();
-    document.execCommand("copy");
-    helper.remove();
-    showToast(label);
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(value);
+      showToast(label);
+      return;
+    } catch (error) {
+      // Some embedded browsers block clipboard writes; fall back below.
+    }
   }
+  const legacyCopy = () => {
+    let eventCopied = false;
+    const onCopy = (event) => {
+      event.clipboardData?.setData("text/plain", value);
+      event.preventDefault();
+      eventCopied = true;
+    };
+    document.addEventListener("copy", onCopy, { once: true });
+    const helper = document.createElement("textarea");
+    helper.value = value;
+    helper.style.position = "fixed";
+    helper.style.left = "-9999px";
+    helper.style.top = "0";
+    helper.style.opacity = "0";
+    document.body.appendChild(helper);
+    helper.focus();
+    helper.select();
+    helper.setSelectionRange(0, helper.value.length);
+    const ok = document.execCommand("copy");
+    helper.remove();
+    document.removeEventListener("copy", onCopy);
+    return ok || eventCopied;
+  };
+  if (legacyCopy()) {
+    showToast(label);
+    return;
+  }
+  selectResultText();
+  showToast("复制失败，请手动选择结果文本");
 }
 
 function makeRecord(type, data, results) {
@@ -1386,7 +1547,17 @@ function findStoredRecord(type, id) {
 }
 
 function getAllResultText() {
-  return currentResults?.plainText || "";
+  return currentResults?.plainText || $("#resultOutput")?.innerText || "";
+}
+
+function selectResultText() {
+  const target = $("#resultOutput");
+  if (!target) return;
+  const range = document.createRange();
+  range.selectNodeContents(target);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
 }
 
 function buildMarkdown() {
@@ -1567,8 +1738,13 @@ function syncChipsFromData(data = {}) {
     input.checked = toneSet.has(input.value);
   });
   const layoutSet = new Set(data.layoutRules || []);
-  document.querySelectorAll("#layoutRuleChips input").forEach((input) => {
-    input.checked = layoutSet.has(input.value);
+  const mainLayout = normalizeMainLayoutName(data.mainLayoutRule || [...layoutSet].find((item) => MAIN_LAYOUT_RULES.includes(normalizeMainLayoutName(item))) || "");
+  document.querySelectorAll("#mainLayoutChips input").forEach((input) => {
+    input.checked = input.value === mainLayout;
+  });
+  const assistSet = new Set(data.assistLayoutRules || [...layoutSet].filter((item) => !MAIN_LAYOUT_RULES.includes(normalizeMainLayoutName(item))));
+  document.querySelectorAll("#assistLayoutChips input").forEach((input) => {
+    input.checked = assistSet.has(input.value);
   });
 }
 
@@ -1667,7 +1843,8 @@ function populateControls() {
   const sceneStyleOptions = knowledgeItems("sceneTemplates").map((item) => item.name);
   renderBackgroundStyleCards("#backgroundStyleChips", uniqueList([...QUICK_BACKGROUND_STYLES, ...sceneStyleOptions]), ["玻璃花瓣"]);
   renderChipGroup("#toneChips", QUICK_TONES, "toneQuick", ["浅金"]);
-  renderChoiceGroup("#layoutRuleChips", QUICK_LAYOUT_RULES, "layoutRuleQuick", "右侧预留产品位");
+  renderChoiceGroup("#mainLayoutChips", MAIN_LAYOUT_RULES, "mainLayoutQuick", "右侧产品占位");
+  renderChipGroup("#assistLayoutChips", ASSIST_LAYOUT_RULES, "assistLayoutQuick", ["底部预留价格区", "右下角留白"]);
   $("#productTypeList").innerHTML = uniqueList([
     ...keywordData.categories.map((item) => item.name),
     ...knowledgeItems("productTypes").map((item) => item.name),
@@ -1777,7 +1954,8 @@ $("#clearAll").addEventListener("click", () => {
   renderChipGroup("#sellingPointChips", QUICK_SELLING_POINTS, "sellingPointQuick", ["低糖饭"]);
   renderBackgroundStyleCards("#backgroundStyleChips", uniqueList([...QUICK_BACKGROUND_STYLES, ...knowledgeItems("sceneTemplates").map((item) => item.name)]), ["玻璃花瓣"]);
   renderChipGroup("#toneChips", QUICK_TONES, "toneQuick", ["浅金"]);
-  renderChoiceGroup("#layoutRuleChips", QUICK_LAYOUT_RULES, "layoutRuleQuick", "右侧预留产品位");
+  renderChoiceGroup("#mainLayoutChips", MAIN_LAYOUT_RULES, "mainLayoutQuick", "右侧产品占位");
+  renderChipGroup("#assistLayoutChips", ASSIST_LAYOUT_RULES, "assistLayoutQuick", ["底部预留价格区", "右下角留白"]);
   $("#platform").value = "京东";
   document.querySelector("input[name='purpose'][value='主图']").checked = true;
   updateModeUI();
@@ -1813,7 +1991,9 @@ $("#loadDemo").addEventListener("click", async () => {
     points: ["专业沥糖釜", "0涂层健康内胆"],
     backgroundStyles: ["玻璃花瓣"],
     tone: "浅金",
-    layoutRules: ["右侧预留产品位"],
+    mainLayoutRule: "右侧产品占位",
+    assistLayoutRules: ["底部预留价格区", "右下角留白"],
+    layoutRules: ["右侧产品占位", "底部预留价格区", "右下角留白"],
   });
   $("#bgStyleCustom").value = "";
   $("#bgToneCustom").value = "";
