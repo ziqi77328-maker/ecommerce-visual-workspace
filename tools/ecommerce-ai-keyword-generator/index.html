@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>电商AI关键词生成器</title>
-    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="./style.css?v=2.1.1" />
   </head>
   <body>
     <main class="app">
@@ -12,86 +12,170 @@
         <div>
           <div class="eyebrow">电商视觉生成助手 · V2</div>
           <h1>电商AI关键词生成器</h1>
-          <p class="lead">按输出用途精准生成。底图模式优先支持产品预览版与纯背景版。</p>
+          <p class="lead">选主图或底图，填两三项，直接生成可复制关键词。</p>
         </div>
-        <div class="toolbar">
+        <div class="toolbar" id="workspaceToolbar" hidden>
+          <button class="btn ghost" id="backHome" type="button">返回首页</button>
           <button class="btn ghost" id="loadDemo" type="button">套用示例</button>
           <button class="btn ghost" id="clearAll" type="button">清空</button>
           <button class="btn" id="copyAll" type="button">复制全部</button>
         </div>
       </header>
 
-      <section class="layout">
+      <section class="landing-panel" id="landingPanel">
+        <button class="entry-card" type="button" data-entry-purpose="主图">
+          <span class="entry-icon">🖼️</span>
+          <span class="entry-copy">
+            <b>主图关键词</b>
+            <small>产品和卖点驱动，生成可直接出主图的关键词。</small>
+          </span>
+        </button>
+        <button class="entry-card" type="button" data-entry-purpose="底图">
+          <span class="entry-icon">🎨</span>
+          <span class="entry-copy">
+            <b>底图关键词</b>
+            <small>背景、色调和构图驱动，生成设计底图关键词。</small>
+          </span>
+        </button>
+      </section>
+
+      <section class="layout" id="workspace" hidden>
         <aside class="panel input-panel">
           <div class="panel-head">
-            <h2>输入信息</h2>
+            <div>
+              <h2 id="modeTitle">主图关键词</h2>
+              <p class="hint" id="modeHint">产品 / 卖点 / 平台</p>
+            </div>
             <span class="pill" id="libraryStatus">加载词库中</span>
           </div>
 
           <form id="keywordForm">
-            <label class="field">
-              <span>产品类型</span>
-              <input id="productType" list="productTypeList" placeholder="如：低糖电饭煲 / 破壁机 / 微波炉" autocomplete="off" />
-              <datalist id="productTypeList"></datalist>
-            </label>
+            <div class="field hidden-control">
+              <span>选择生成类型</span>
+              <div class="purpose-group mode-group" id="purposeGroup" role="radiogroup" aria-label="生成类型"></div>
+            </div>
 
-            <label class="field">
-              <span>核心卖点</span>
-              <textarea id="sellingPoints" placeholder="每行一个卖点。例：&#10;专业沥糖釜&#10;0涂层健康内胆&#10;22分钟快煮饭"></textarea>
-              <p class="hint">词库会参与匹配，但输出会重新组合、扩写、去重复；不会机械堆关键词。</p>
-            </label>
-
-            <div class="grid-2">
+            <section class="mode-panel" data-mode-panel="main">
               <label class="field">
+                <span>产品名称</span>
+                <input id="productType" list="productTypeList" placeholder="如：美的低糖电饭煲" autocomplete="off" />
+                <datalist id="productTypeList"></datalist>
+              </label>
+
+              <label class="field">
+                <span>核心卖点</span>
+                <div class="chip-grid" id="sellingPointChips"></div>
+                <textarea id="sellingPoints" placeholder="可补充自定义卖点。例：&#10;专业沥糖釜&#10;0涂层健康内胆"></textarea>
+              </label>
+
+              <div class="grid-2">
+                <label class="field">
                 <span>平台</span>
                 <select id="platform"></select>
-              </label>
-              <label class="field">
+                </label>
+                <label class="field">
                 <span>视觉风格</span>
                 <select id="visualStyle"></select>
-              </label>
-            </div>
+                </label>
+              </div>
 
-            <div class="field">
-              <span>输出用途</span>
-              <div class="purpose-group" id="purposeGroup" role="radiogroup" aria-label="输出用途"></div>
-            </div>
-
-            <div class="grid-2">
-              <label class="field">
-                <span>活动信息</span>
-                <input id="campaign" placeholder="如：618 / 政府补贴 / 新品价" />
-              </label>
               <label class="field">
                 <span>价格权益</span>
-                <input id="benefits" placeholder="如：到手价、返现、赠品" />
+                <input id="benefits" placeholder="如：到手价、返现、赠品、价保" />
               </label>
-            </div>
 
-            <label class="field">
-              <span>产品外观约束</span>
-              <textarea id="appearance" placeholder="可选：颜色、材质、Logo、面板、把手、门体、杯体、内胆等真实结构"></textarea>
-            </label>
+              <label class="field">
+                <span>产品外观约束</span>
+                <textarea id="appearance" class="small-textarea" placeholder="可选：颜色、材质、Logo、面板、把手、门体、杯体、内胆等真实结构"></textarea>
+              </label>
+            </section>
 
-            <div class="switch-row">
-              <label class="switch">
+            <section class="mode-panel design-panel" data-mode-panel="background" hidden>
+              <label class="field">
+                <span>背景风格</span>
+                <div class="chip-grid card-grid" id="backgroundStyleChips"></div>
+                <input id="bgStyleCustom" placeholder="请输入自定义背景风格，例如：浅金玻璃花瓣厨房" autocomplete="off" />
+              </label>
+
+              <label class="field">
+                <span>色调</span>
+                <div class="chip-grid" id="toneChips"></div>
+                <input id="bgToneCustom" placeholder="请输入自定义色调，例如：浅金+米白+银灰" autocomplete="off" />
+              </label>
+
+              <label class="field">
+                <span>构图规则</span>
+                <div class="chip-grid card-grid" id="layoutRuleChips"></div>
+              </label>
+
+              <label class="field">
+                <span>产品类型（可选）</span>
+                <select id="bgProductType">
+                  <option>电饭煲</option>
+                  <option>微波炉</option>
+                  <option>空气炸锅</option>
+                  <option>破壁机</option>
+                  <option>电水壶</option>
+                  <option>其他</option>
+                </select>
+                <p class="hint">仅用于判断后期合成空间，不会生成产品。</p>
+              </label>
+
+              <label class="field">
+                <span>特殊要求（可选）</span>
+                <input id="bgSpecial" placeholder="例如：右下角必须留白，不能出现配件，背景要通透" />
+              </label>
+            </section>
+
+            <div class="hidden-control">
+              <input id="campaign" />
+              <select id="productDisplay"></select>
+              <label class="hidden-control">
                 <input id="aiMode" type="checkbox" />
-                <span class="switch-slider"></span>
               </label>
-              <div>
-                <strong>AI模式</strong>
-                <p class="hint">预留 DeepSeek API。未接后端时会自动回退到词库增强生成。</p>
-              </div>
             </div>
 
             <div class="form-actions">
-              <button class="btn primary" id="generateBtn" type="submit">生成关键词</button>
+              <button class="btn primary" id="generateBtn" type="submit">生成主图关键词</button>
               <button class="btn ghost" id="copyMain" type="button">复制当前结果</button>
             </div>
-
-            <p class="hint api-hint">已预留 <code>/api/generate</code> 接口位置。以后接 DeepSeek API 时，API Key 必须放后端，不能写在前端。</p>
           </form>
+        </aside>
 
+        <section class="result-grid">
+          <div class="summary" id="summary" hidden>
+            <div class="metric">
+              <b>当前用途</b>
+              <span id="metricDirections">单用途输出</span>
+            </div>
+            <div class="metric">
+              <b>词库来源</b>
+              <span id="metricLibrary">外置 JSON</span>
+            </div>
+            <div class="metric">
+              <b>输出结构</b>
+              <span id="metricPrice">卡片式结果</span>
+            </div>
+            <div class="metric">
+              <b>生成策略</b>
+              <span id="metricRisk">去重复扩写</span>
+            </div>
+          </div>
+
+          <div class="panel empty" id="emptyState">
+            <div>
+              <h2>等待生成关键词...</h2>
+              <p>请选择内容并点击生成</p>
+            </div>
+          </div>
+
+          <div class="result-output" id="resultOutput" hidden></div>
+        </section>
+      </section>
+
+      <details class="history-dock" id="historyDock" hidden>
+        <summary>📚 历史记录</summary>
+        <div class="history-dock-body">
           <section class="team-panel">
             <div class="team-panel-head">
               <h3>团队使用</h3>
@@ -126,41 +210,11 @@
             </div>
             <div class="saved-list" id="favoriteList"></div>
           </section>
-        </aside>
-
-        <section class="result-grid">
-          <div class="summary" id="summary" hidden>
-            <div class="metric">
-              <b>当前用途</b>
-              <span id="metricDirections">单用途输出</span>
-            </div>
-            <div class="metric">
-              <b>词库来源</b>
-              <span id="metricLibrary">外置 JSON</span>
-            </div>
-            <div class="metric">
-              <b>输出结构</b>
-              <span id="metricPrice">卡片式结果</span>
-            </div>
-            <div class="metric">
-              <b>生成策略</b>
-              <span id="metricRisk">去重复扩写</span>
-            </div>
-          </div>
-
-          <div class="panel empty" id="emptyState">
-            <div>
-              <h2>填入产品信息后生成</h2>
-              <p>选择主图、底图、商详或视频后，只输出对应内容。底图会生成产品预览版和纯背景版两套一致场景关键词。</p>
-            </div>
-          </div>
-
-          <div class="result-output" id="resultOutput" hidden></div>
-        </section>
-      </section>
+        </div>
+      </details>
     </main>
 
     <div class="toast" id="toast">已复制</div>
-    <script src="./script.js" defer></script>
+    <script src="./script.js?v=2.1.1" defer></script>
   </body>
 </html>
