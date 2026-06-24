@@ -4,21 +4,48 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>电商AI关键词生成器</title>
-    <link rel="stylesheet" href="./style.css?v=2.1.1" />
+    <link rel="stylesheet" href="./style.css?v=2.1.2" />
   </head>
   <body>
-    <main class="app">
+    <section class="auth-screen" id="authScreen">
+      <form class="login-card" id="loginForm">
+        <div>
+          <div class="eyebrow">测试版访问保护</div>
+          <h1>电商AI关键词生成器</h1>
+          <p class="lead">请输入账号密码后继续使用。</p>
+        </div>
+
+        <label class="field">
+          <span>账号</span>
+          <input id="loginUsername" autocomplete="username" placeholder="请输入账号" />
+        </label>
+
+        <label class="field">
+          <span>密码</span>
+          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="请输入密码" />
+        </label>
+
+        <p class="login-error" id="loginError" hidden>账号或密码错误</p>
+        <button class="btn primary" type="submit">登录</button>
+        <p class="hint">轻量测试版保护，不等同于正式账号系统。</p>
+      </form>
+    </section>
+
+    <main class="app" id="appMain" hidden>
       <header class="topbar">
         <div>
           <div class="eyebrow">电商视觉生成助手 · V2</div>
           <h1>电商AI关键词生成器</h1>
           <p class="lead">选主图或底图，填两三项，直接生成可复制关键词。</p>
         </div>
-        <div class="toolbar" id="workspaceToolbar" hidden>
-          <button class="btn ghost" id="backHome" type="button">返回首页</button>
-          <button class="btn ghost" id="loadDemo" type="button">套用示例</button>
-          <button class="btn ghost" id="clearAll" type="button">清空</button>
-          <button class="btn" id="copyAll" type="button">复制全部</button>
+        <div class="toolbar" id="topToolbar">
+          <button class="btn ghost" id="logoutBtn" type="button">退出登录</button>
+          <span class="workspace-actions" id="workspaceToolbar" hidden>
+            <button class="btn ghost" id="backHome" type="button">返回首页</button>
+            <button class="btn ghost" id="loadDemo" type="button">套用示例</button>
+            <button class="btn ghost" id="clearAll" type="button">清空</button>
+            <button class="btn" id="copyAll" type="button">复制全部</button>
+          </span>
         </div>
       </header>
 
@@ -215,6 +242,6 @@
     </main>
 
     <div class="toast" id="toast">已复制</div>
-    <script src="./script.js?v=2.1.1" defer></script>
+    <script src="./script.js?v=2.1.2" defer></script>
   </body>
 </html>

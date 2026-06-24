@@ -1,4 +1,5 @@
 const DATA_URL = "./data/keywords.json";
+const AUTH_URL = "./data/auth.json";
 const KNOWLEDGE_BASE_URL = "./data/knowledge";
 const KNOWLEDGE_FILES = {
   productTypes: "product-types.json",
@@ -10,6 +11,7 @@ const KNOWLEDGE_FILES = {
 };
 const API_ENDPOINT = "/api/generate";
 const STORAGE_KEYS = {
+  auth: "ecommerceKeyword:auth",
   lastForm: "ecommerceKeyword:lastForm",
   history: "ecommerceKeyword:history",
   favorites: "ecommerceKeyword:favorites",
@@ -104,6 +106,7 @@ let currentResults = null;
 let currentData = null;
 let restoreFromShareData = null;
 let copyBlocks = [];
+let authConfig = null;
 
 function splitPoints(value) {
   return value
@@ -328,6 +331,34 @@ async function fetchJson(url) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Failed to load ${url}`);
   return response.json();
+}
+
+async function loadAuthConfig() {
+  try {
+    return await fetchJson(AUTH_URL);
+  } catch (error) {
+    console.warn("Auth config failed, using test fallback", error);
+    return { users: [{ username: "admin", password: "diudiu2026" }] };
+  }
+}
+
+function isAuthenticated() {
+  return storageGet(STORAGE_KEYS.auth, null)?.loggedIn === true;
+}
+
+function setAuthenticated(loggedIn) {
+  if (loggedIn) {
+    storageSet(STORAGE_KEYS.auth, {
+      loggedIn: true,
+      loggedAt: new Date().toISOString(),
+    });
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.auth);
+  }
+}
+
+function credentialsMatch(username, password) {
+  return (authConfig?.users || []).some((user) => user.username === username && user.password === password);
 }
 
 async function loadKeywordLibrary() {
@@ -1447,6 +1478,35 @@ function showLanding() {
   $("#historyDock").open = false;
 }
 
+function showLoginScreen() {
+  $("#authScreen").hidden = false;
+  $("#appMain").hidden = true;
+  $("#loginError").hidden = true;
+  $("#loginPassword").value = "";
+}
+
+function showAppShell() {
+  $("#authScreen").hidden = true;
+  $("#appMain").hidden = false;
+}
+
+function showAuthenticatedStart() {
+  showAppShell();
+  if (restoreFromShareData) {
+    restoreRecord({
+      id: "share",
+      type: "share",
+      savedAt: new Date().toISOString(),
+      data: restoreFromShareData.data,
+      results: restoreFromShareData.results,
+    });
+    return;
+  }
+  showLanding();
+  const lastForm = storageGet(STORAGE_KEYS.lastForm, null);
+  if (lastForm) setFormData(lastForm);
+}
+
 function populateControls() {
   const platforms = uniqueList([
     ...keywordData.platforms,
@@ -1495,26 +1555,16 @@ function populateControls() {
 async function init() {
   try {
     restoreShareFromHash();
+    authConfig = await loadAuthConfig();
     keywordData = await loadKeywordLibrary();
     populateControls();
     $("#libraryStatus").textContent = keywordData.knowledgeLoaded ? "结构化词库已加载" : "基础词库已加载";
     renderSavedLists();
-    if (restoreFromShareData) {
-      restoreRecord({
-        id: "share",
-        type: "share",
-        savedAt: new Date().toISOString(),
-        data: restoreFromShareData.data,
-        results: restoreFromShareData.results,
-      });
-    } else {
-      showLanding();
-      const lastForm = storageGet(STORAGE_KEYS.lastForm, null);
-      if (lastForm) {
-        setFormData(lastForm);
-      }
-    }
+    if (isAuthenticated()) showAuthenticatedStart();
+    else showLoginScreen();
   } catch (error) {
+    if (isAuthenticated()) showAppShell();
+    else showLoginScreen();
     $("#libraryStatus").textContent = "词库加载失败";
     $("#libraryStatus").classList.add("error");
     $("#emptyState").querySelector("p").textContent =
@@ -1537,6 +1587,26 @@ $("#keywordForm").addEventListener("submit", async (event) => {
   const record = makeRecord("history", data, results);
   addRecord(STORAGE_KEYS.history, record, 30);
   addRecord(STORAGE_KEYS.recent, { ...record, type: "recent" }, 12);
+});
+
+$("#loginForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const username = $("#loginUsername").value.trim();
+  const password = $("#loginPassword").value;
+  if (!credentialsMatch(username, password)) {
+    $("#loginError").hidden = false;
+    $("#loginPassword").value = "";
+    $("#loginPassword").focus();
+    return;
+  }
+  setAuthenticated(true);
+  $("#loginError").hidden = true;
+  showAuthenticatedStart();
+});
+
+$("#logoutBtn").addEventListener("click", () => {
+  setAuthenticated(false);
+  showLoginScreen();
 });
 
 document.addEventListener("click", (event) => {
