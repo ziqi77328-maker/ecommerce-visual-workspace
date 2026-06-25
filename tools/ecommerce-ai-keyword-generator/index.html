@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>电商AI关键词生成器</title>
-    <link rel="stylesheet" href="./style.css?v=2.2.4" />
+    <link rel="stylesheet" href="./style.css?v=3.0.0" />
   </head>
   <body>
     <section class="auth-screen" id="authScreen">
@@ -133,6 +133,12 @@
                 <span>背景色调</span>
                 <div class="chip-grid" id="toneChips"></div>
                 <input id="bgToneCustom" placeholder="请输入自定义色调，例如：青瓷蓝" autocomplete="off" />
+              </label>
+
+              <label class="field">
+                <span>视觉语言</span>
+                <div class="chip-grid" id="visualLanguageChips"></div>
+                <p class="hint">决定整套广告摄影语言，而不是单独添加特效元素。</p>
               </label>
 
               <label class="field">
@@ -280,6 +286,6 @@
     </main>
 
     <div class="toast" id="toast">已复制</div>
-    <script src="./script.js?v=2.2.4" defer></script>
+    <script src="./script.js?v=3.0.0" defer></script>
   </body>
 </html>

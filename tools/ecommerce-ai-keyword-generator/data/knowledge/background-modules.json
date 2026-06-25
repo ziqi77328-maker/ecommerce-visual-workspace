@@ -2,6 +2,118 @@
   "version": "1.0.0",
   "items": [
     {
+      "id": "visual-commercial-photo",
+      "type": "visualLanguage",
+      "name": "商业摄影",
+      "description": "成熟商业产品摄影，真实布光和克制特效",
+      "keywords": [
+        "完整商业广告视觉设计",
+        "商业广告摄影",
+        "高级产品摄影",
+        "Luxurious commercial product visualization",
+        "Premium advertising composition",
+        "Luxury product photography",
+        "Premium material rendering",
+        "Cinematic commercial lighting"
+      ],
+      "rules": ["产品是第一视觉主体", "特效只作为辅助设计语言", "背景干净且有空间层次"]
+    },
+    {
+      "id": "visual-apple-keynote",
+      "type": "visualLanguage",
+      "name": "苹果发布会",
+      "description": "克制、留白、舞台聚光、产品主导",
+      "keywords": [
+        "Apple keynote presentation style",
+        "minimal premium stage lighting",
+        "clean keynote product reveal",
+        "precise spotlight",
+        "premium product launch visual"
+      ],
+      "rules": ["大面积干净留白", "克制聚光", "极少装饰", "产品轮廓最清晰"]
+    },
+    {
+      "id": "visual-premium-tech",
+      "type": "visualLanguage",
+      "name": "高端科技",
+      "description": "科技感但不堆特效，强调材质和轮廓",
+      "keywords": [
+        "premium high-tech commercial visualization",
+        "controlled technology atmosphere",
+        "clean futuristic product stage",
+        "precision material highlights",
+        "advanced product rendering"
+      ],
+      "rules": ["光效沿产品轮廓服务识别", "科技元素低密度", "控制面板和Logo不被遮挡"]
+    },
+    {
+      "id": "visual-jd-hit",
+      "type": "visualLanguage",
+      "name": "京东爆款",
+      "description": "搜索页强识别，产品大、卖点清楚、背景不抢",
+      "keywords": [
+        "JD search result hero image style",
+        "high-conversion ecommerce product visual",
+        "large product presentation",
+        "strong thumbnail readability",
+        "clean commercial selling point composition"
+      ],
+      "rules": ["产品主体最大视觉权重", "背景服务缩略图点击", "信息区和主体边界清楚"]
+    },
+    {
+      "id": "visual-luxury-ad",
+      "type": "visualLanguage",
+      "name": "奢侈品广告",
+      "description": "高端材质、真实投影、克制空间",
+      "keywords": [
+        "luxury product photography",
+        "premium advertising composition",
+        "rich material rendering",
+        "realistic shadow and reflection",
+        "elegant commercial still life"
+      ],
+      "rules": ["特效极克制", "材质质感高于装饰数量", "空间层次高级且干净"]
+    },
+    {
+      "id": "visual-home-life",
+      "type": "visualLanguage",
+      "name": "家居生活",
+      "description": "温和生活氛围，产品依然是主体",
+      "keywords": [
+        "premium home lifestyle commercial photography",
+        "soft lived-in atmosphere",
+        "clean home product photography",
+        "warm commercial interior lighting"
+      ],
+      "rules": ["生活氛围轻虚化", "道具低干扰", "产品大于生活背景权重"]
+    },
+    {
+      "id": "visual-cinematic",
+      "type": "visualLanguage",
+      "name": "电影感",
+      "description": "体积光、景深、叙事感，但不压产品",
+      "keywords": [
+        "cinematic commercial lighting",
+        "controlled volumetric light",
+        "premium depth of field",
+        "dramatic but clean product photography"
+      ],
+      "rules": ["体积光低密度", "远景轻粒子", "产品高亮清晰"]
+    },
+    {
+      "id": "visual-future-tech",
+      "type": "visualLanguage",
+      "name": "未来科技",
+      "description": "未来感空间、冷静秩序、低密度数字元素",
+      "keywords": [
+        "futuristic commercial product visualization",
+        "clean future technology stage",
+        "premium sci-fi product photography",
+        "controlled digital atmosphere"
+      ],
+      "rules": ["数字元素只在远景低密度出现", "避免满屏能量线", "产品始终最高权重"]
+    },
+    {
       "id": "scene-commercial-gradient",
       "type": "scene",
       "name": "商业渐变背景",
