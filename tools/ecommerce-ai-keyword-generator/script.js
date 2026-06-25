@@ -819,9 +819,9 @@ function visualLanguageLines(data) {
 function commercialEffectDisciplineLines() {
   return [
     "特效仅占整体画面的5%~15%",
-    "产品主体与Hero Group共同形成第一视觉锚点，产品识别必须清晰",
+    "产品主体与卖点视觉主体组合共同形成第一视觉锚点，产品识别必须清晰",
     "背景保持干净，不为了体现特效而过度生成",
-    "未进入Hero Group的特效不能成为画面主体，不能遮挡Logo、控制面板、产品轮廓和关键卖点区域",
+    "非核心视觉元素不能成为画面主体，不能遮挡Logo、控制面板、产品轮廓和关键卖点区域",
     "所有特效必须融入商业摄影布光、材质反射、景深和空间层次",
   ];
 }
@@ -842,16 +842,15 @@ function hasHeroGroup(data) {
 
 function heroGroupLines(data) {
   const group = heroGroupElements(data);
-  if (!group.length) return ["Hero Group：未选择多个视觉元素，保持单一核心视觉主体"];
-  if (group.length === 1) return [`Hero Group：${group[0]}作为单一视觉母题，围绕产品形成统一视觉语言`];
+  if (!group.length) return ["未选择多个视觉元素，保持单一核心视觉主体"];
+  if (group.length === 1) return [`${group[0]}作为单一视觉母题，围绕产品形成统一视觉语言`];
   return [
-    `Hero Group主体组合：${group.join(" + ")}`,
     `${group.join("、")}共同构成画面的核心视觉主体组合`,
     "不要自动判断其中一个是主体、另一个是装饰",
-    "Hero Group内部元素拥有同等视觉重要性",
+    "视觉主体组合内部元素拥有同等视觉重要性",
     "构图、光影、空间关系围绕这个主体组合共同展开",
-    "Hero Group必须呈现为一个整体设计，而不是多个元素的简单组合",
-    "Hero Group与产品共同形成第一视觉锚点，产品识别和主体组合都必须清晰",
+    "视觉主体组合必须呈现为一个整体设计，而不是多个元素的简单组合",
+    "视觉主体组合与产品共同形成第一视觉锚点，产品识别和主体组合都必须清晰",
   ];
 }
 
@@ -865,14 +864,14 @@ function spatialLayerLines(data) {
       ? `前景层：${hero.join("、")}的局部折射、边缘高光和材质延展形成主体组合的前景层次`
       : `前景层：少量${effect}或材质折射只作为边缘点缀`,
     hasHeroGroup(data)
-      ? `主体层：产品与Hero Group（${hero.join(" + ")}）共同构成核心视觉主体区域`
+      ? `主体层：产品与${hero.join("、")}共同构成核心视觉主体区域`
       : "主体层：产品是画面中心和最高视觉权重",
     data.effectWordEnabled && data.effectWordText
       ? `产品后方层：${data.effectWordText}大型立体广告字与其它视觉元素共同构成主体组合，不被降级为普通背景装饰`
       : "产品后方层：保留干净轮廓光和空间纵深",
     `背景层：${light}与环境光形成商业广告摄影氛围`,
     "远景层：只允许少量低密度粒子、体积光或景深层次",
-    "所有层次围绕产品与Hero Group建立纵深，不把特效堆在同一平面",
+    "所有层次围绕产品与卖点视觉主体组合建立纵深，不把特效堆在同一平面",
   ];
 }
 
@@ -890,8 +889,8 @@ function selectedVisualElements(data) {
 function relationshipEngineLines(data) {
   const elements = selectedVisualElements(data);
   const lines = [
-    "Relationship Engine：先建立元素关系，再描述元素本身",
-    "生成逻辑：Elements -> Relationship -> Layout -> Photography -> Final Prompt",
+    "先建立元素关系，再描述元素本身",
+    "生成逻辑：先确定元素关系，再组织构图、光影、摄影语言和最终画面",
     "禁止把元素简单并列堆叠，禁止让元素各自漂浮在画面里",
     "所有元素必须通过材质、光影、折射、投影、包裹、生长、穿透或流动关系连接成完整商业广告视觉",
     ...heroGroupLines(data),
@@ -901,7 +900,7 @@ function relationshipEngineLines(data) {
     lines.push(
       `${elements.effectWord}大字与${elements.decoration}共同构成核心视觉主体组合`,
       `${elements.effectWord}和${elements.decoration}拥有同等视觉重要性，不把${elements.decoration}降级为普通装饰`,
-      `${elements.effectWord}的字形结构、${elements.decoration}的形态、材质折射和光影共同组织成一个Hero Group`,
+      `${elements.effectWord}的字形结构、${elements.decoration}的形态、材质折射和光影共同组织成一个统一卖点视觉主体`,
       `构图中心、主光、轮廓光和景深围绕${elements.effectWord} + ${elements.decoration}这个主体组合展开`,
     );
   } else if (elements.effectWord && elements.decoration) {
@@ -923,7 +922,7 @@ function relationshipEngineLines(data) {
 
   if (hasHeroGroup(data) && /晶体|玻璃花瓣/.test(elements.decoration) && /光束|晶体折射|背光|聚光|冷白科技光|暖金阳光/.test(elements.lighting)) {
     lines.push(
-      `${elements.decoration}与${elements.lighting}共同构成Hero Group的光学主体关系`,
+      `${elements.decoration}与${elements.lighting}共同构成卖点视觉主体的光学关系`,
       `${elements.lighting}不是背景特效，而是穿过${elements.decoration}后形成主体组合的折射、透射、焦散光和边缘高光`,
     );
   } else if (/晶体|玻璃花瓣/.test(elements.decoration) && /光束|晶体折射|背光|聚光|冷白科技光|暖金阳光/.test(elements.lighting)) {
@@ -935,7 +934,7 @@ function relationshipEngineLines(data) {
 
   if (hasHeroGroup(data) && /金属/.test(elements.material) && /能量线|光束|金属高光|冷白科技光/.test(`${elements.decoration}${elements.lighting}`)) {
     lines.push(
-      "金属材质与能量线共同形成Hero Group的结构骨架",
+      "金属材质与能量线共同形成卖点视觉主体的结构骨架",
       "能量线从金属缝隙和金属切面中流动，二者共同成为主体组合的一部分",
     );
   } else if (/金属/.test(elements.material) && /能量线|光束|金属高光|冷白科技光/.test(`${elements.decoration}${elements.lighting}`)) {
@@ -962,13 +961,13 @@ function relationshipEngineLines(data) {
   if (elements.decoration && !elements.effectWord) {
     lines.push(
       hasHeroGroup(data)
-        ? `${elements.decoration}作为Hero Group的一部分，与其它视觉元素共同构成核心视觉区域`
+        ? `${elements.decoration}作为卖点视觉主体组合的一部分，与其它视觉元素共同构成核心视觉区域`
         : `${elements.decoration}围绕产品轮廓和主光路径组织，不能成为独立主体`,
     );
   }
 
   lines.push(
-    "前景元素、Hero Group、产品、背景大字、光效和远景粒子之间必须有明确前后遮挡、投影和景深关系",
+    "前景元素、卖点视觉主体组合、产品、背景大字、光效和远景粒子之间必须有明确前后遮挡、投影和景深关系",
     "画面最终呈现为一套成熟商业摄影视觉设计，而不是元素清单",
   );
   return uniqueList(lines);
@@ -1521,7 +1520,7 @@ function backgroundSceneSections(blueprint, productMode) {
       : "本版本用于商品预览，商品以真实完整摄影状态融入中景商品展示区。";
   return [
     section("承载面逻辑", blueprint.surface),
-    section("Hero Group", blueprint.heroGroup),
+    section("视觉主体组合", blueprint.heroGroup),
     section("视觉语言", blueprint.visualLanguage),
     section("元素关系", blueprint.relationships),
     section("场景定位", blueprint.scene),
@@ -1542,7 +1541,7 @@ function pureBackgroundSceneSections(blueprint) {
     section("用途", "纯背景版用于直接生成无产品电商底图，交给后期再合成画面信息。"),
     section("核心规则", PURE_BACKGROUND_CORE),
     section("承载面逻辑", blueprint.surface),
-    section("Hero Group", blueprint.heroGroup),
+    section("视觉主体组合", blueprint.heroGroup),
     section("视觉语言", blueprint.visualLanguage),
     section("元素关系", blueprint.relationships),
     section("空场景定位", blueprint.scene),
@@ -1559,13 +1558,15 @@ function pureBackgroundSceneSections(blueprint) {
 }
 
 function buildCompleteScenePrompt(data, blueprint, extra = "") {
+  const designLead = designBrainPromptLead(data);
   const displayRule = displayConstraintText(data);
   const productText = `画面保留${data.productType}完整商品主体，展示方式为${data.productDisplay}，${displayRule}${data.appearance}，Logo位置不变，控制面板清晰，比例不可改变。`;
-  return `${data.platform}电商完整商业视觉场景底图，1:1正方形，高清真实商业摄影质感。承载面逻辑：${blueprint.surface}。Hero Group主体组合：${blueprint.heroGroup}。视觉语言：${blueprint.visualLanguage}。元素关系：${blueprint.relationships}。场景定位：${blueprint.scene}。空间结构：${blueprint.space}。光影结构：${blueprint.light}。前景元素：${blueprint.foreground}。中景主体展示区：${blueprint.midground}。后景氛围元素：${blueprint.background}。色彩体系：${blueprint.colors}。留白区域：${blueprint.blank}。产品摆放区域：${blueprint.productArea}。${productText}${extra} 承载面负面提示：${blueprint.surfaceNegative}。不生成广告文字、价格数字、乱码、促销标签、水印或伪文字。可直接用于GPT、豆包、即梦、Liblib生成完整商业视觉场景。`;
+  return `${designLead}。${data.platform}电商完整商业视觉场景，1:1正方形，高清真实商业摄影质感。${blueprint.surface}。${blueprint.visualLanguage}。${blueprint.relationships}。背景采用${blueprint.scene}，空间保持${blueprint.space}。光影为${blueprint.light}，前景保持${blueprint.foreground}，中景安排${blueprint.midground}，后景保留${blueprint.background}。整体色彩为${blueprint.colors}，排版需要${blueprint.blank}，${blueprint.productArea}。${productText}${extra} 禁止${blueprint.surfaceNegative}，不生成广告文字、价格数字、乱码、促销标签、水印或伪文字。`;
 }
 
 function buildPureBackgroundPrompt(data, blueprint, extra = "") {
-  return `${PURE_BACKGROUND_CORE} 1:1正方形，商业摄影底图。承载面逻辑：${blueprint.surface}。Hero Group主体组合：${blueprint.heroGroup}。视觉语言：${blueprint.visualLanguage}。元素关系：${blueprint.relationships}。空场景定位：${blueprint.scene}。空间结构：${blueprint.space}。光影层次：${blueprint.light}。干净台面：${blueprint.foreground}。背景元素：${blueprint.background}。色调与材质氛围：${blueprint.colors}。后期合成留白：${blueprint.blank}。${extra} 负面提示词：${PURE_BACKGROUND_NEGATIVE_CN} ${PURE_BACKGROUND_NEGATIVE_EN} ${blueprint.surfaceNegative} 可直接用于GPT、豆包、即梦、Liblib生成无产品电商底图。`;
+  const designLead = designBrainPromptLead(data, { pureBackground: true });
+  return `${designLead}。${PURE_BACKGROUND_CORE} 1:1正方形，商业摄影底图。${blueprint.surface}。背景采用${blueprint.scene}，空间保持${blueprint.space}。光影层次为${blueprint.light}，台面保持${blueprint.foreground}，背景只保留${blueprint.background}。色调与材质氛围为${blueprint.colors}，画面保留${blueprint.blank}。${extra} 负面提示词：${PURE_BACKGROUND_NEGATIVE_CN} ${PURE_BACKGROUND_NEGATIVE_EN} ${blueprint.surfaceNegative}`;
 }
 
 function buildContext(data) {
@@ -1673,6 +1674,60 @@ function section(title, content) {
   return { title, content: String(content || "").trim() };
 }
 
+function limitPrompt(text, maxLength = 2000) {
+  const value = String(text || "").replace(/\s+/g, " ").trim();
+  if (value.length <= maxLength) return value;
+  const clipped = value.slice(0, maxLength - 1);
+  const lastStop = Math.max(clipped.lastIndexOf("。"), clipped.lastIndexOf("."));
+  return `${clipped.slice(0, lastStop > maxLength * 0.72 ? lastStop + 1 : maxLength - 1).trim()}。`;
+}
+
+function promptResultBlocks(productPrompt, purePrompt) {
+  return [
+    section("🖼 产品预览版 Prompt", limitPrompt(productPrompt)),
+    section("🎨 纯背景版 Prompt", limitPrompt(purePrompt)),
+  ];
+}
+
+function designBrainStrategy(data) {
+  if (window.DesignBrain?.generate) return window.DesignBrain.generate(data);
+  const visualHero = [
+    data.effectWordEnabled && data.effectWordText ? `${data.effectWordText}大字` : "",
+    data.backgroundDecoration && data.backgroundDecoration !== "无" ? data.backgroundDecoration : "",
+  ].filter(Boolean);
+  const productHero = data.productType || "产品";
+  return {
+    intent: data.corePoint && !data.corePoint.includes("【") ? `突出${data.corePoint}` : "建立清晰电商主视觉",
+    coreSellingPoint: data.corePoint || data.effectWordText || "核心卖点",
+    productHero,
+    visualHero,
+    heroGroup: [productHero, ...visualHero],
+    designLanguage: [data.visualLanguage || "商业摄影", "电商转化", "真实光影"],
+    elementRelationship: visualHero.length
+      ? `${visualHero.join("、")}与${productHero}共同构成核心视觉，不作为独立元素堆叠。`
+      : `${productHero}作为核心视觉主体，背景与光影服务产品识别。`,
+    visualHierarchy: `${productHero} > 卖点视觉主体 > 背景 > 轻装饰`,
+    photographyLogic: "前景为连续承载面，中景为产品与卖点视觉主体，后景轻微虚化。",
+    designStory: "先建立设计意图和视觉层级，再调用关键词库生成最终Prompt。",
+  };
+}
+
+function designBrainSections(data) {
+  const strategy = designBrainStrategy(data);
+  return [
+    section("Design Brain", window.PromptComposer?.composeDesignStory ? window.PromptComposer.composeDesignStory(strategy) : strategy.designStory),
+  ];
+}
+
+function designBrainPromptLead(data, options = {}) {
+  const strategy = designBrainStrategy(data);
+  const promptLead = window.PromptComposer?.composeNaturalPromptLead
+    ? window.PromptComposer.composeNaturalPromptLead(strategy)
+    : strategy.designStory;
+  if (!options.pureBackground) return promptLead;
+  return pureLayoutText(promptLead).replace(new RegExp(data.productType || "产品", "g"), "后期合成内容");
+}
+
 function createResult({ purpose, title, subtitle, category, blocks }) {
   const plainText = flattenBlocks(blocks);
   return {
@@ -1709,20 +1764,19 @@ function buildMainImageResult(data, ctx) {
   const displayNegative = displayNegativeText(data);
   const subjectRatio = isInductionCooker(data) ? "主体占画面50%-65%" : "主体占画面45%-60%";
   const priorityRule = isInductionCooker(data) ? "产品特殊规则 > 场景规则 > 通用规则。厨房只作为背景，不改变商品摄影展示状态。" : "";
-  const prompt = `${data.platform}电商主图，${data.productType}，核心卖点“${data.corePoint}”。${priorityRule}${displayRule}${ctx.scenePosition}，${ctx.layout.join("，")}。${subjectRatio}，真实清晰，${ctx.lighting.join("，")}。卖点区只表达${data.corePoint}，辅助卖点包含${ctx.selling.slice(1, 5).join("、") || "【辅助卖点】"}。证据区使用${ctx.evidence.slice(0, 4).join("、")}证明卖点。底部成交区写${data.campaign}，到手价 ¥【真实价格】，${data.benefits}。禁止产品变形、Logo错误、控制面板模糊、文字乱码、参数臆造、背景抢主体、${displayNegative}、${ctx.knowledge.negativeTerms.slice(0, 10).join("、")}。`;
+  const designLead = designBrainPromptLead(data);
+  const productPrompt = `${designLead}。${data.platform}电商主图，${data.productType}，核心卖点“${data.corePoint}”。${priorityRule}${displayRule}${ctx.scenePosition}，${ctx.layout.join("，")}。${subjectRatio}，真实清晰，${ctx.lighting.join("，")}。卖点区只表达${data.corePoint}，辅助卖点包含${ctx.selling.slice(1, 5).join("、") || "【辅助卖点】"}。证据区使用${ctx.evidence.slice(0, 4).join("、")}证明卖点。底部成交区写${data.campaign}，到手价 ¥【真实价格】，${data.benefits}。禁止产品变形、Logo错误、控制面板模糊、文字乱码、参数臆造、背景抢主体、${displayNegative}、${ctx.knowledge.negativeTerms.slice(0, 10).join("、")}。`;
+  const purePrompt = buildPureBackgroundPrompt(
+    data,
+    buildPureBackgroundBlueprint(data, ctx),
+    "保留与产品预览版一致的背景、摄影、构图、色调、材质与光影；去除产品、卖点字、价格、角标、Logo和任何可识别主体。",
+  );
   return createResult({
     purpose: "主图",
     title,
-    subtitle: "用于直接生成主图，包含产品、卖点、证据和成交区",
+    subtitle: "最终只输出产品预览版和纯背景版 Prompt",
     category: ctx.category,
-    blocks: [
-      ...knowledgeSummarySections(ctx.knowledge),
-      section("主图定位", `${data.platform}平台转化主图，目标是第一眼看懂产品、卖点和成交理由。${isInductionCooker(data) ? "电磁炉必须按京东搜索结果页商品摄影展示方式处理，不按厨房真实使用状态处理。" : ""}`),
-      section("构图建议", `${ctx.layout.join("；")}；底部价格权益区控制在画面14%-18%；${isInductionCooker(data) ? "电磁炉主体占画面45%-65%，圆形加热区域不得被裁切或遮挡。" : "产品主体不可低于45%。"}`),
-      section("卖点层级", `核心卖点：${data.corePoint}。辅助卖点：${ctx.selling.slice(1, 5).join(" / ") || "【待补充】"}。同一卖点不得重复出现在标题、贴片和价格区。`),
-      section("证据与约束", `证据优先使用：${ctx.evidence.join(" / ")}。展示方式：${isInductionCooker(data) ? "搜索主图展示" : data.productDisplay}。${displayRule}产品约束：${data.appearance}。`),
-      section("AI生图关键词", prompt),
-    ],
+    blocks: promptResultBlocks(productPrompt, purePrompt),
   });
 }
 
@@ -1743,27 +1797,9 @@ function buildBackgroundResult(data, ctx) {
   return createResult({
     purpose: "背景图",
     title: `${data.productType}完整场景底图关键词`,
-    subtitle: "底图模式：输出完整商业视觉场景，不输出素材级背景词",
+    subtitle: "最终只输出产品预览版和纯背景版 Prompt",
     category: ctx.category,
-    blocks: [
-      ...knowledgeSummarySections(ctx.knowledge),
-      {
-        type: "version",
-        title: "【产品预览版】用于查看产品放入后的整体效果",
-        sections: [
-          ...backgroundSceneSections(blueprint, "product"),
-          section("AI生图关键词（产品预览版）", productPrompt),
-        ],
-      },
-      {
-        type: "version",
-        title: "【纯背景版】用于直接生成无产品电商底图",
-        sections: [
-          ...pureBackgroundSceneSections(pureBlueprint),
-          section("AI生图关键词（纯背景版）", purePrompt),
-        ],
-      },
-    ],
+    blocks: promptResultBlocks(productPrompt, purePrompt),
   });
 }
 
@@ -1803,65 +1839,46 @@ function buildGlassPetalBackgroundResult(data, ctx) {
   return createResult({
     purpose: "背景图",
     title: `${data.productType}玻璃花瓣完整场景底图关键词`,
-    subtitle: "底图模式：输出完整商业视觉场景，不输出素材级背景词",
+    subtitle: "最终只输出产品预览版和纯背景版 Prompt",
     category: ctx.category,
-    blocks: [
-      ...knowledgeSummarySections(ctx.knowledge),
-      {
-        type: "version",
-        title: "【产品预览版】用于查看产品放入后的整体效果",
-        sections: [
-          ...backgroundSceneSections(blueprint, "product"),
-          section("AI生图关键词（产品预览版）", productPrompt),
-        ],
-      },
-      {
-        type: "version",
-        title: "【纯背景版】用于直接生成无产品电商底图",
-        sections: [
-          ...pureBackgroundSceneSections(pureBlueprint),
-          section("AI生图关键词（纯背景版）", purePrompt),
-        ],
-      },
-      section("负面提示词", negative),
-    ],
+    blocks: promptResultBlocks(productPrompt, `${purePrompt} 负面提示词：${negative}`),
   });
 }
 
 function buildDetailResult(data, ctx) {
   const displayRule = displayConstraintText(data);
-  const prompt = `${data.platform}电商详情页视觉，产品为${data.productType}，围绕${data.corePoint}拆成首屏利益、证据说明、使用场景、权益收口四段。风格为${data.visualStyle}，场景参考${ctx.scenePosition}，光影为${ctx.lighting.join("，")}。产品展示方式为${data.productDisplay}，${displayRule}每屏只表达一个信息任务，证据包括${ctx.evidence.join("、")}。不要编造未提供的参数、检测数据和权益金额，禁止${ctx.knowledge.negativeTerms.slice(0, 8).join("、")}。`;
+  const designLead = designBrainPromptLead(data);
+  const productPrompt = `${designLead}。${data.platform}电商详情页视觉，产品为${data.productType}，围绕${data.corePoint}拆成首屏利益、证据说明、使用场景、权益收口四段。风格为${data.visualStyle}，场景参考${ctx.scenePosition}，光影为${ctx.lighting.join("，")}。产品展示方式为${data.productDisplay}，${displayRule}每屏只表达一个信息任务，证据包括${ctx.evidence.join("、")}。不要编造未提供的参数、检测数据和权益金额，禁止${ctx.knowledge.negativeTerms.slice(0, 8).join("、")}。`;
+  const purePrompt = buildPureBackgroundPrompt(
+    data,
+    buildPureBackgroundBlueprint(data, ctx),
+    "保留详情页首屏同款背景、光影、摄影与留白，去除产品、文字、卖点、价格、图标、Logo和任何可识别主体。",
+  );
   return createResult({
     purpose: "商详",
     title: `${data.productType}商详关键词`,
-    subtitle: "单用途输出：只生成商详关键词",
+    subtitle: "最终只输出产品预览版和纯背景版 Prompt",
     category: ctx.category,
-    blocks: [
-      ...knowledgeSummarySections(ctx.knowledge),
-      section("商详结构", "首屏核心利益 / 卖点解释 / 证据模块 / 场景模块 / 权益收口。"),
-      section("模块关键词", `核心卖点：${data.corePoint}。辅助卖点：${ctx.selling.slice(1, 5).join(" / ") || "【待补充】"}。展示方式：${data.productDisplay}。证据：${ctx.evidence.join(" / ")}。`),
-      section("视觉建议", `${ctx.scenePosition}；${ctx.backgroundElements.join(" / ")}；${ctx.lighting.join(" / ")}。`),
-      section("AI生图关键词", prompt),
-    ],
+    blocks: promptResultBlocks(productPrompt, purePrompt),
   });
 }
 
 function buildVideoResult(data, ctx) {
   const displayRule = displayConstraintText(data);
   const displayNegative = displayNegativeText(data);
-  const prompt = `${data.productType}电商短视频，${data.visualStyle}，${data.platform}平台，5-8秒。镜头1展示${ctx.scenePosition}与主体入场；镜头2特写${ctx.evidence.slice(0, 3).join("、")}证明${data.corePoint}；镜头3用${ctx.backgroundElements.slice(0, 3).join("、")}表现功能结果；镜头4回到稳定主视觉并预留价格权益排版。产品展示方式为${data.productDisplay}，${displayRule}产品外观不变形，面板清晰，不生成乱码和虚假价格，禁止${displayNegative}、${ctx.knowledge.negativeTerms.slice(0, 8).join("、")}。`;
+  const designLead = designBrainPromptLead(data);
+  const productPrompt = `${designLead}。${data.productType}电商短视频，${data.visualStyle}，${data.platform}平台，5-8秒。镜头1展示${ctx.scenePosition}与主体入场；镜头2特写${ctx.evidence.slice(0, 3).join("、")}证明${data.corePoint}；镜头3用${ctx.backgroundElements.slice(0, 3).join("、")}表现功能结果；镜头4回到稳定主视觉并预留价格权益排版。产品展示方式为${data.productDisplay}，${displayRule}产品外观不变形，面板清晰，不生成乱码和虚假价格，禁止${displayNegative}、${ctx.knowledge.negativeTerms.slice(0, 8).join("、")}。`;
+  const purePrompt = buildPureBackgroundPrompt(
+    data,
+    buildPureBackgroundBlueprint(data, ctx),
+    "保留视频首帧同款背景、运动光影、摄影氛围和后期合成空间，去除产品、文字、卖点、价格、图标、Logo和任何可识别主体。",
+  );
   return createResult({
     purpose: "视频",
     title: `${data.productType}视频关键词`,
-    subtitle: "单用途输出：只生成视频关键词",
+    subtitle: "最终只输出产品预览版和纯背景版 Prompt",
     category: ctx.category,
-    blocks: [
-      ...knowledgeSummarySections(ctx.knowledge),
-      section("视频定位", `${data.platform}电商短视频，强调卖点证据和产品真实质感。`),
-      section("镜头脚本", `1. 场景入场：${ctx.scenePosition}\n2. 局部证据：${ctx.evidence.slice(0, 3).join(" / ")}\n3. 卖点可视化：${data.corePoint}\n4. 收尾：稳定主视觉，预留成交信息。`),
-      section("动态关键词", `${ctx.backgroundElements.join(" / ")} / ${ctx.lighting.join(" / ")} / 柔和推镜 / 局部特写 / 真实接触阴影。`),
-      section("AI视频关键词", prompt),
-    ],
+    blocks: promptResultBlocks(productPrompt, purePrompt),
   });
 }
 
@@ -1900,14 +1917,24 @@ async function buildResults(data) {
 }
 
 function normalizeApiResult(result, data) {
-  if (result.blocks && result.purpose) return result;
   const ctx = buildContext(data);
+  const apiText = result.text || result.prompt || result.plainText || "";
+  const productPrompt = result.productPrompt || result.previewPrompt || result.mainPrompt || apiText || JSON.stringify(result, null, 2);
+  const purePrompt =
+    result.pureBackgroundPrompt ||
+    result.backgroundOnlyPrompt ||
+    result.backgroundPrompt ||
+    buildPureBackgroundPrompt(
+      data,
+      buildPureBackgroundBlueprint(data, ctx),
+      "保留与产品预览版一致的背景、摄影、构图、色调、材质与光影；去除产品、文字、卖点、价格、角标、Logo和任何可识别主体。",
+    );
   return createResult({
     purpose: data.purpose,
     title: `${data.productType}${data.purpose}关键词`,
-    subtitle: "AI接口返回内容",
+    subtitle: "最终只输出产品预览版和纯背景版 Prompt",
     category: ctx.category,
-    blocks: [section("AI生成结果", result.text || JSON.stringify(result, null, 2))],
+    blocks: promptResultBlocks(productPrompt, purePrompt),
   });
 }
 
@@ -1952,9 +1979,8 @@ function render(results) {
   $("#resultOutput").hidden = false;
   $("#metricDirections").textContent = results.purpose;
   $("#metricLibrary").textContent = `${keywordData.version} · ${results.category.name}`;
-  $("#metricPrice").textContent = results.purpose === "背景图" ? "产品版 + 纯背景版" : "仅当前用途";
-  $("#metricRisk").textContent = results.subtitle || "卡片式复制";
-  const allIndex = copyBlocks.push(results.plainText) - 1;
+  $("#metricPrice").textContent = "产品版 + 纯背景版";
+  $("#metricRisk").textContent = "后台优化 Prompt";
   $("#resultOutput").innerHTML = `
     <article class="output-card">
       <div class="result-head">
@@ -1965,7 +1991,6 @@ function render(results) {
             <p class="hint">${escapeHtml(results.subtitle || "")}</p>
           </div>
         </div>
-        <button class="copy" data-copy-index="${allIndex}" type="button">复制全部</button>
       </div>
       <div class="output-body">
         ${results.blocks.map(renderBlock).join("")}
@@ -1999,6 +2024,7 @@ async function copyText(text, label = "已复制") {
   }
   const legacyCopy = () => {
     let eventCopied = false;
+    const activeElement = document.activeElement;
     const onCopy = (event) => {
       event.clipboardData?.setData("text/plain", value);
       event.preventDefault();
@@ -2007,17 +2033,21 @@ async function copyText(text, label = "已复制") {
     document.addEventListener("copy", onCopy, { once: true });
     const helper = document.createElement("textarea");
     helper.value = value;
+    helper.setAttribute("readonly", "");
     helper.style.position = "fixed";
-    helper.style.left = "-9999px";
-    helper.style.top = "0";
-    helper.style.opacity = "0";
+    helper.style.left = "-1000px";
+    helper.style.top = "-1000px";
+    helper.style.width = "1px";
+    helper.style.height = "1px";
+    helper.style.fontSize = "16px";
     document.body.appendChild(helper);
-    helper.focus();
+    helper.focus({ preventScroll: true });
     helper.select();
     helper.setSelectionRange(0, helper.value.length);
     const ok = document.execCommand("copy");
     helper.remove();
     document.removeEventListener("copy", onCopy);
+    if (activeElement?.focus) activeElement.focus({ preventScroll: true });
     return ok || eventCopied;
   };
   if (legacyCopy()) {
