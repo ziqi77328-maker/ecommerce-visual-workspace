@@ -837,6 +837,82 @@ function spatialLayerLines(data) {
   ];
 }
 
+function selectedVisualElements(data) {
+  return {
+    material: data.backgroundMaterial && data.backgroundMaterial !== "无材质" ? data.backgroundMaterial : "",
+    decoration: data.backgroundDecoration && data.backgroundDecoration !== "无" ? data.backgroundDecoration : "",
+    lighting: data.lightingEffect && data.lightingEffect !== "无特殊光效" ? data.lightingEffect : "",
+    effectWord: data.effectWordEnabled && data.effectWordText ? data.effectWordText : "",
+    tone: data.tone || "",
+    visualLanguage: data.visualLanguage || "商业摄影",
+  };
+}
+
+function relationshipEngineLines(data) {
+  const elements = selectedVisualElements(data);
+  const lines = [
+    "Relationship Engine：先建立元素关系，再描述元素本身",
+    "生成逻辑：Elements -> Relationship -> Layout -> Photography -> Final Prompt",
+    "禁止把元素简单并列堆叠，禁止让元素各自漂浮在画面里",
+    "所有元素必须通过材质、光影、折射、投影、包裹、生长、穿透或流动关系连接成完整商业广告视觉",
+  ];
+
+  if (elements.effectWord && elements.decoration) {
+    if (/玻璃花瓣|花瓣/.test(elements.decoration)) {
+      lines.push(
+        `${elements.decoration}自然融入${elements.effectWord}大字内部，作为${elements.effectWord}字形材质的一部分`,
+        `${elements.decoration}沿着${elements.effectWord}字母边缘生长，并形成真实玻璃折射效果`,
+        `${elements.effectWord}大字可由半透明玻璃花瓣构成，花瓣包裹字形但不脱离字形结构`,
+      );
+    } else if (/晶体|金属碎片|光粒子|能量线|流体|飘带/.test(elements.decoration)) {
+      lines.push(
+        `${elements.decoration}与${elements.effectWord}大字发生材质关系，不是漂浮在旁边的独立装饰`,
+        `${elements.decoration}沿${elements.effectWord}字形边缘、笔画转角和背后轮廓分布，形成统一广告字设计`,
+      );
+    } else {
+      lines.push(`${elements.decoration}必须服务${elements.effectWord}大字的材质、边缘高光和空间层次，不独立抢主体`);
+    }
+  }
+
+  if (/晶体|玻璃花瓣/.test(elements.decoration) && /光束|晶体折射|背光|聚光|冷白科技光|暖金阳光/.test(elements.lighting)) {
+    lines.push(
+      `${elements.lighting}穿过${elements.decoration}形成真实折射、透射和边缘高光`,
+      `${elements.decoration}不是独立漂浮物，而是光路中的折射介质`,
+    );
+  }
+
+  if (/金属/.test(elements.material) && /能量线|光束|金属高光|冷白科技光/.test(`${elements.decoration}${elements.lighting}`)) {
+    lines.push(
+      "能量线从金属缝隙、金属切面和产品后方结构中流动",
+      "金属材质通过边缘高光承接能量线，不出现孤立的线条装饰",
+    );
+  }
+
+  if (/玻璃/.test(elements.material) && /暖金阳光|晶体折射光|光束效果|背光/.test(elements.lighting)) {
+    lines.push(
+      `${elements.lighting}穿过玻璃材质产生真实折射、焦散光和柔和投影`,
+      "玻璃材质与光效共同形成空间深度，不是分别出现的两个元素",
+    );
+  }
+
+  if (elements.effectWord && elements.lighting) {
+    lines.push(
+      `${elements.lighting}从${elements.effectWord}大字边缘和背后溢出，形成真实体积光与轮廓光`,
+      `${elements.effectWord}大字必须有接触阴影、背后投影和真实空间遮挡关系`,
+    );
+  }
+
+  if (elements.decoration && !elements.effectWord) {
+    lines.push(`${elements.decoration}围绕产品轮廓和主光路径组织，不能成为独立主体`);
+  }
+
+  lines.push(
+    "前景元素、主体、背景大字、光效和远景粒子之间必须有明确前后遮挡、投影和景深关系",
+    "画面最终呈现为一套成熟商业摄影视觉设计，而不是元素清单",
+  );
+  return uniqueList(lines);
+}
+
 function sceneIsolationLines(data) {
   const scene = data.backgroundScene || "现代厨房";
   const lines = [
@@ -1136,6 +1212,7 @@ function buildSceneBlueprint(data, ctx, options = {}) {
   const sceneTone = pick(sceneSource, seed, 5);
   const spatialBase = [
     "画面分为连续工作台面层、中景展示层、后景氛围层",
+    ...relationshipEngineLines(data),
     ...spatialLayerLines(data),
     ...productCompositionLines(data),
     ...assistCompositionLines(data),
@@ -1172,6 +1249,7 @@ function buildSceneBlueprint(data, ctx, options = {}) {
   ];
   const background = [
     ...pick(elementSource, seed + 2, 6),
+    ...relationshipEngineLines(data),
     ...decorationLines(data),
     ...effectWordLines(data),
     "后景虚化处理形成纵深",
@@ -1187,6 +1265,7 @@ function buildSceneBlueprint(data, ctx, options = {}) {
 
   return {
     visualLanguage: joinText([...visualLanguageLines(data), ...commercialEffectDisciplineLines(), ...spatialLayerLines(data)]),
+    relationships: joinText(relationshipEngineLines(data)),
     scene: joinText([...commercialBase, ...sceneTone]),
     space: joinText(spatialBase),
     light: joinText(lightBase),
@@ -1230,6 +1309,7 @@ function buildPureBackgroundBlueprint(data, ctx, options = {}) {
   const sceneTone = pick(
     [
       ...visualLanguageLines(data),
+      ...relationshipEngineLines(data),
       ...backgroundPriorityLines(data),
       ...sceneIsolationLines(data),
       `${selectedStyles}空场景`,
@@ -1243,6 +1323,7 @@ function buildPureBackgroundBlueprint(data, ctx, options = {}) {
   );
   const space = [
     "画面分为干净台面层、空白留区层、背景氛围层",
+    ...relationshipEngineLines(data).map(pureLayoutText),
     ...spatialLayerLines(data).map(pureLayoutText),
     ...layoutRules,
     ...blankAreaLines(data).map(pureLayoutText),
@@ -1274,6 +1355,7 @@ function buildPureBackgroundBlueprint(data, ctx, options = {}) {
       ];
   const background = [
     ...pick(elementSource, seed + 2, 5).map(pureLayoutText),
+    ...relationshipEngineLines(data).map(pureLayoutText),
     ...decorationLines(data).map(pureLayoutText),
     ...effectWordLines(data).map(pureLayoutText),
     "背景元素仅作为材质氛围",
@@ -1297,6 +1379,7 @@ function buildPureBackgroundBlueprint(data, ctx, options = {}) {
 
   return {
     visualLanguage: joinText([...visualLanguageLines(data), ...commercialEffectDisciplineLines(), ...spatialLayerLines(data)].map(pureLayoutText)),
+    relationships: joinText(relationshipEngineLines(data).map(pureLayoutText)),
     scene: joinText(["电商空场景商业摄影底图", ...sceneTone]),
     space: joinText(space),
     light: joinText(light),
@@ -1314,6 +1397,7 @@ function backgroundSceneSections(blueprint, productMode) {
       : "本版本用于商品预览，商品以真实完整摄影状态融入中景商品展示区。";
   return [
     section("视觉语言", blueprint.visualLanguage),
+    section("元素关系", blueprint.relationships),
     section("场景定位", blueprint.scene),
     section("构图结构", blueprint.space),
     section("光影结构", blueprint.light),
@@ -1331,6 +1415,7 @@ function pureBackgroundSceneSections(blueprint) {
     section("用途", "纯背景版用于直接生成无产品电商底图，交给后期再合成画面信息。"),
     section("核心规则", PURE_BACKGROUND_CORE),
     section("视觉语言", blueprint.visualLanguage),
+    section("元素关系", blueprint.relationships),
     section("空场景定位", blueprint.scene),
     section("构图结构", blueprint.space),
     section("光影结构", blueprint.light),
@@ -1346,11 +1431,11 @@ function pureBackgroundSceneSections(blueprint) {
 function buildCompleteScenePrompt(data, blueprint, extra = "") {
   const displayRule = displayConstraintText(data);
   const productText = `画面保留${data.productType}完整商品主体，展示方式为${data.productDisplay}，${displayRule}${data.appearance}，Logo位置不变，控制面板清晰，比例不可改变。`;
-  return `${data.platform}电商完整商业视觉场景底图，1:1正方形，高清真实商业摄影质感。视觉语言：${blueprint.visualLanguage}。场景定位：${blueprint.scene}。空间结构：${blueprint.space}。光影结构：${blueprint.light}。前景元素：${blueprint.foreground}。中景主体展示区：${blueprint.midground}。后景氛围元素：${blueprint.background}。色彩体系：${blueprint.colors}。留白区域：${blueprint.blank}。产品摆放区域：${blueprint.productArea}。${productText}${extra} 不生成广告文字、价格数字、乱码、促销标签、水印或伪文字。可直接用于GPT、豆包、即梦、Liblib生成完整商业视觉场景。`;
+  return `${data.platform}电商完整商业视觉场景底图，1:1正方形，高清真实商业摄影质感。视觉语言：${blueprint.visualLanguage}。元素关系：${blueprint.relationships}。场景定位：${blueprint.scene}。空间结构：${blueprint.space}。光影结构：${blueprint.light}。前景元素：${blueprint.foreground}。中景主体展示区：${blueprint.midground}。后景氛围元素：${blueprint.background}。色彩体系：${blueprint.colors}。留白区域：${blueprint.blank}。产品摆放区域：${blueprint.productArea}。${productText}${extra} 不生成广告文字、价格数字、乱码、促销标签、水印或伪文字。可直接用于GPT、豆包、即梦、Liblib生成完整商业视觉场景。`;
 }
 
 function buildPureBackgroundPrompt(data, blueprint, extra = "") {
-  return `${PURE_BACKGROUND_CORE} 1:1正方形，商业摄影底图。视觉语言：${blueprint.visualLanguage}。空场景定位：${blueprint.scene}。空间结构：${blueprint.space}。光影层次：${blueprint.light}。干净台面：${blueprint.foreground}。背景元素：${blueprint.background}。色调与材质氛围：${blueprint.colors}。后期合成留白：${blueprint.blank}。${extra} 负面提示词：${PURE_BACKGROUND_NEGATIVE_CN} ${PURE_BACKGROUND_NEGATIVE_EN} 可直接用于GPT、豆包、即梦、Liblib生成无产品电商底图。`;
+  return `${PURE_BACKGROUND_CORE} 1:1正方形，商业摄影底图。视觉语言：${blueprint.visualLanguage}。元素关系：${blueprint.relationships}。空场景定位：${blueprint.scene}。空间结构：${blueprint.space}。光影层次：${blueprint.light}。干净台面：${blueprint.foreground}。背景元素：${blueprint.background}。色调与材质氛围：${blueprint.colors}。后期合成留白：${blueprint.blank}。${extra} 负面提示词：${PURE_BACKGROUND_NEGATIVE_CN} ${PURE_BACKGROUND_NEGATIVE_EN} 可直接用于GPT、豆包、即梦、Liblib生成无产品电商底图。`;
 }
 
 function buildContext(data) {
@@ -1361,11 +1446,13 @@ function buildContext(data) {
   const isBackground = data.purpose === BACKGROUND_PURPOSE;
   const backgroundSceneTerms = [
     ...visualLanguageLines(data),
+    ...relationshipEngineLines(data),
     ...backgroundPriorityLines(data),
     ...sceneIsolationLines(data),
     ...moduleKeywords("scene", data.backgroundScene || data.visualStyle),
   ];
   const backgroundElementTerms = [
+    ...relationshipEngineLines(data),
     ...spatialLayerLines(data),
     ...materialLines(data),
     ...decorationLines(data),
@@ -1373,6 +1460,7 @@ function buildContext(data) {
   ];
   const backgroundLightingTerms = [
     ...visualLanguageLines(data),
+    ...relationshipEngineLines(data),
     ...lightingEffectLines(data),
     ...(isKitchenScene(data) ? kitchenProductFocusLines() : []),
   ];
