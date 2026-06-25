@@ -1,0 +1,187 @@
+{
+  "version": "1.0.0",
+  "items": [
+    {
+      "id": "scene-commercial-gradient",
+      "type": "scene",
+      "name": "商业渐变背景",
+      "description": "无真实场景、干净渐变、适合后期排版",
+      "keywords": ["商业渐变背景", "无真实场景", "干净棚拍空间", "柔和渐变", "后期排版友好"],
+      "forbid": ["厨房", "客厅", "餐厅", "家具", "生活场景"]
+    },
+    {
+      "id": "scene-studio",
+      "type": "scene",
+      "name": "商业棚拍",
+      "description": "摄影棚空间、真实布光、低干扰",
+      "keywords": ["商业摄影棚拍背景", "摄影棚空间", "干净展示台", "真实布光", "低干扰背景"],
+      "forbid": ["生活厨房", "餐桌", "家具杂物", "真实烹饪"]
+    },
+    {
+      "id": "scene-modern-kitchen",
+      "type": "scene",
+      "name": "现代厨房",
+      "description": "现代厨房岛台、轻虚化、生活氛围",
+      "keywords": ["现代厨房", "厨房岛台", "开放式收纳背景", "轻微虚化后景", "生活氛围背景"],
+      "forbid": ["纯色背景", "科技空间", "抽象棚拍", "玻璃花瓣场景"]
+    },
+    {
+      "id": "scene-minimal-kitchen",
+      "type": "scene",
+      "name": "极简厨房",
+      "description": "少道具、干净厨房、留白清晰",
+      "keywords": ["极简厨房", "干净厨房背景", "少量厨房结构", "轻虚化后景", "完整厨房操作台"],
+      "forbid": ["复杂生活道具", "餐桌", "科技空间", "抽象背景"]
+    },
+    {
+      "id": "scene-open-kitchen",
+      "type": "scene",
+      "name": "开放式厨房",
+      "description": "中岛厨房、空间纵深、适合家电主图",
+      "keywords": ["开放式厨房", "中岛厨房", "连续厨房岛台", "空间纵深", "轻虚化背景"],
+      "forbid": ["独立餐桌", "第二张桌子", "纯色背景", "科技空间"]
+    },
+    {
+      "id": "scene-tech-space",
+      "type": "scene",
+      "name": "科技空间",
+      "description": "未来科技、数字空间、非厨房",
+      "keywords": ["科技空间", "未来科技背景", "数字科技空间", "干净科技棚拍", "产品展示空间"],
+      "forbid": ["厨房", "生活场景", "家具", "餐桌", "真实烹饪"]
+    },
+    {
+      "id": "scene-pure-color",
+      "type": "scene",
+      "name": "纯色背景",
+      "description": "单色商业棚拍、不生成真实场景",
+      "keywords": ["纯色商业摄影背景", "无真实场景", "无家具", "干净棚拍背景", "单色背景"],
+      "forbid": ["厨房", "生活场景", "家具", "餐桌", "客厅", "真实空间"]
+    },
+    {
+      "id": "material-none",
+      "type": "material",
+      "name": "无材质",
+      "description": "不额外指定材质",
+      "keywords": ["无额外材质", "背景保持干净"]
+    },
+    {
+      "id": "material-stone",
+      "type": "material",
+      "name": "石材",
+      "description": "石材台面或背景肌理",
+      "keywords": ["石材肌理", "细腻石材纹理", "高级石材台面"]
+    },
+    {
+      "id": "material-wood",
+      "type": "material",
+      "name": "木纹",
+      "description": "自然木纹，适合厨房和生活感",
+      "keywords": ["浅木纹理", "自然木质肌理", "温和木质台面"]
+    },
+    {
+      "id": "material-metal",
+      "type": "material",
+      "name": "金属",
+      "description": "金属反射与科技质感",
+      "keywords": ["金属材质", "拉丝金属", "细腻金属反射"]
+    },
+    {
+      "id": "material-glass",
+      "type": "material",
+      "name": "玻璃",
+      "description": "透明折射、清透高级",
+      "keywords": ["透明玻璃材质", "清透折射", "玻璃反射"]
+    },
+    {
+      "id": "color-celadon-blue",
+      "type": "color",
+      "name": "青瓷蓝",
+      "description": "青瓷蓝为唯一主色",
+      "keywords": ["青瓷蓝主色调", "整体背景以青瓷蓝为主", "低饱和青蓝色"],
+      "forbid": ["暖黄色主色", "橙金主色", "杂色背景"]
+    },
+    {
+      "id": "color-warm-gold",
+      "type": "color",
+      "name": "暖金",
+      "description": "暖金为唯一主色",
+      "keywords": ["暖金主色调", "整体背景以暖金为主", "香槟暖光氛围"],
+      "forbid": ["冷蓝主色", "杂色背景"]
+    },
+    {
+      "id": "color-silver-gray",
+      "type": "color",
+      "name": "银灰",
+      "description": "银灰科技色",
+      "keywords": ["银灰主色调", "整体背景以银灰为主", "冷静高级灰"],
+      "forbid": ["暖黄色厨房", "红色主色"]
+    },
+    {
+      "id": "color-cream",
+      "type": "color",
+      "name": "米白",
+      "description": "米白干净色",
+      "keywords": ["米白主色调", "整体背景以米白为主", "干净明亮米白空间"],
+      "forbid": ["深色背景", "高饱和杂色"]
+    },
+    {
+      "id": "decoration-none",
+      "type": "decoration",
+      "name": "无",
+      "description": "不添加背景装饰",
+      "keywords": ["无背景装饰", "背景干净"]
+    },
+    {
+      "id": "decoration-glass-petal",
+      "type": "decoration",
+      "name": "玻璃花瓣",
+      "description": "透明花瓣围绕产品附近",
+      "keywords": ["透明玻璃花瓣", "半透明晶体花瓣", "围绕产品附近少量分布"],
+      "forbid": ["花瓣铺满背景", "花瓣遮挡产品"]
+    },
+    {
+      "id": "decoration-crystal",
+      "type": "decoration",
+      "name": "晶体",
+      "description": "少量晶体折射点缀",
+      "keywords": ["晶体折射", "少量晶体装饰", "产品周围折射点缀"],
+      "forbid": ["晶体遮挡主体", "背景全是晶体"]
+    },
+    {
+      "id": "decoration-energy-line",
+      "type": "decoration",
+      "name": "能量线",
+      "description": "功能能量路径，不穿过主体",
+      "keywords": ["能量线", "功能路径光线", "围绕产品边缘"],
+      "forbid": ["能量线穿过控制面板", "整屏光效"]
+    },
+    {
+      "id": "lighting-soft",
+      "type": "lighting",
+      "name": "柔和漫反射",
+      "description": "柔和商业布光",
+      "keywords": ["柔和漫反射", "商业摄影柔光", "产品周围柔和高光"]
+    },
+    {
+      "id": "lighting-cool-tech",
+      "type": "lighting",
+      "name": "冷白科技光",
+      "description": "冷白科技光围绕产品",
+      "keywords": ["冷白科技光", "产品周围冷白轮廓光", "局部科技光效"]
+    },
+    {
+      "id": "lighting-warm-sun",
+      "type": "lighting",
+      "name": "暖金阳光",
+      "description": "暖金光集中在产品附近",
+      "keywords": ["暖金阳光", "产品周围暖金高光", "局部暖光氛围"]
+    },
+    {
+      "id": "lighting-spotlight",
+      "type": "lighting",
+      "name": "聚光灯",
+      "description": "产品主体聚光",
+      "keywords": ["产品主体聚光", "商业棚拍聚光", "中心视觉聚焦光"]
+    }
+  ]
+}

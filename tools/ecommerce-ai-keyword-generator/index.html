@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>电商AI关键词生成器</title>
-    <link rel="stylesheet" href="./style.css?v=2.1.8" />
+    <link rel="stylesheet" href="./style.css?v=2.2.4" />
   </head>
   <body>
     <section class="auth-screen" id="authScreen">
@@ -119,15 +119,47 @@
 
             <section class="mode-panel design-panel" data-mode-panel="background" hidden>
               <label class="field">
-                <span>背景风格</span>
+                <span>背景场景</span>
                 <div class="chip-grid card-grid" id="backgroundStyleChips"></div>
-                <input id="bgStyleCustom" placeholder="请输入自定义背景风格，例如：浅金玻璃花瓣厨房" autocomplete="off" />
+                <input id="bgStyleCustom" placeholder="请输入自定义背景场景，例如：现代开放式厨房" autocomplete="off" />
               </label>
 
               <label class="field">
-                <span>色调</span>
+                <span>背景材质</span>
+                <div class="chip-grid" id="backgroundMaterialChips"></div>
+              </label>
+
+              <label class="field">
+                <span>背景色调</span>
                 <div class="chip-grid" id="toneChips"></div>
-                <input id="bgToneCustom" placeholder="请输入自定义色调，例如：浅金+米白+银灰" autocomplete="off" />
+                <input id="bgToneCustom" placeholder="请输入自定义色调，例如：青瓷蓝" autocomplete="off" />
+              </label>
+
+              <label class="field">
+                <span>背景特效</span>
+                <div class="chip-grid" id="backgroundDecorationChips"></div>
+              </label>
+
+              <label class="field">
+                <span>光效</span>
+                <div class="chip-grid" id="lightingEffectChips"></div>
+                <p class="hint">光效只集中在产品主体附近，不铺满整个背景。</p>
+              </label>
+
+              <label class="switch-row effect-word-row">
+                <span class="switch">
+                  <input id="effectWordEnabled" type="checkbox" />
+                  <span class="switch-slider"></span>
+                </span>
+                <span>
+                  <strong>背景特效大字</strong>
+                  <small>位于产品后方，不遮挡产品，不抢主体。</small>
+                </span>
+              </label>
+
+              <label class="field" id="effectWordField" hidden>
+                <span>特效大字内容</span>
+                <input id="effectWordText" placeholder="例如：IH、晶钛、低糖、0涂层、Turbo、Heat" autocomplete="off" />
               </label>
 
               <label class="field">
@@ -248,6 +280,6 @@
     </main>
 
     <div class="toast" id="toast">已复制</div>
-    <script src="./script.js?v=2.1.8" defer></script>
+    <script src="./script.js?v=2.2.4" defer></script>
   </body>
 </html>

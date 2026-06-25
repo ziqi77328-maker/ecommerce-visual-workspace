@@ -8,6 +8,7 @@ const KNOWLEDGE_FILES = {
   layoutRules: "layout-rules.json",
   promptRecipes: "prompt-recipes.json",
   platformRules: "platform-rules.json",
+  backgroundModules: "background-modules.json",
 };
 const API_ENDPOINT = "/api/generate";
 const STORAGE_KEYS = {
@@ -23,21 +24,32 @@ const DEFAULT_DISPLAY_MODE = "完整产品";
 const MAIN_PURPOSE = "主图";
 const BACKGROUND_PURPOSE = "背景图";
 const QUICK_SELLING_POINTS = ["低糖饭", "IH加热", "0涂层", "晶钛内胆", "少盐提鲜"];
-const QUICK_BACKGROUND_STYLES = [
-  "玻璃花瓣",
-  "晶钛空间",
-  "IH能量",
-  "厨房棚拍",
-  "极简白底",
-  "黑金科技",
-  "生活场景",
-  "浅金高级感",
-  "银灰科技感",
-  "温馨米白",
-  "木质台面",
-  "抽象棚拍",
+const QUICK_BACKGROUND_SCENES = [
+  "商业渐变背景",
+  "商业棚拍",
+  "现代厨房",
+  "极简厨房",
+  "开放式厨房",
+  "客厅",
+  "餐厅",
+  "科技空间",
+  "纯色背景",
 ];
-const QUICK_TONES = ["浅金", "米白", "银灰", "浅灰蓝", "奶油白", "香槟金", "黑金", "青瓷蓝", "暖木色", "冷白科技", "低饱和高级灰"];
+const QUICK_BACKGROUND_MATERIALS = ["无材质", "石材", "木纹", "金属", "亚克力", "镜面", "玻璃", "水泥"];
+const QUICK_BACKGROUND_DECORATIONS = ["无", "玻璃花瓣", "晶体", "金属碎片", "光粒子", "能量线", "流体", "飘带"];
+const QUICK_LIGHTING_EFFECTS = [
+  "无特殊光效",
+  "暖金阳光",
+  "冷白科技光",
+  "柔和漫反射",
+  "背光轮廓光",
+  "聚光灯",
+  "晶体折射光",
+  "金属高光",
+  "光束效果",
+  "能量光效",
+];
+const QUICK_TONES = ["白色", "米白", "浅灰", "深灰", "黑色", "蓝色", "红色", "金色", "香槟金", "青瓷蓝", "暖金", "银灰", "黑金", "红金"];
 const MAIN_LAYOUT_RULES = [
   "右侧产品占位",
   "居中主视觉",
@@ -62,21 +74,15 @@ const BACKGROUND_STYLE_MAP = {
   抽象棚拍: "极简白底",
 };
 const BACKGROUND_STYLE_DESCRIPTIONS = {
-  玻璃花瓣: "清透、柔和、高级健康感",
-  晶钛空间: "金属晶体、科技材质、强质感",
-  IH能量: "热力光环、能量路径、功能可视化",
-  厨房棚拍: "真实厨房空间、干净台面、商业光影",
-  极简白底: "低干扰、大留白、产品后期友好",
-  黑金科技: "深色棚拍、金色聚光、科技氛围",
-  生活场景: "温暖家庭感、早餐餐桌、生活代入",
-  浅金高级感: "浅金高光、香槟质感、精修氛围",
-  银灰科技感: "银灰材质、冷静理性、数码科技感",
-  温馨米白: "奶油米白、柔和自然、温暖轻生活",
-  木质台面: "浅木台面、自然材质、厨房亲和力",
-  抽象棚拍: "抽象空间、干净布光、后期合成友好",
-  晶钛金属: "金属切面、拉丝反射、高端科技",
-  浅金厨房: "浅金厨房、暖灰台面、家电主图常用",
-  生活厨房: "生活厨房、真实光影、使用场景感",
+  商业渐变背景: "无真实场景、干净渐变、适合后期排版",
+  商业棚拍: "摄影棚空间、真实布光、低干扰",
+  现代厨房: "现代厨房岛台、轻虚化、生活氛围",
+  极简厨房: "少道具、干净厨房、留白清晰",
+  开放式厨房: "中岛厨房、空间纵深、适合家电主图",
+  客厅: "家居氛围、轻虚化、非厨房",
+  餐厅: "餐饮空间、轻生活感、低干扰",
+  科技空间: "未来科技、数字空间、非厨房",
+  纯色背景: "单色商业棚拍、不生成真实场景",
 };
 const PURE_BACKGROUND_CORE =
   "这是一个无产品的电商后期排版底图，画面中不得出现任何商品、家电、容器、瓶子、包装、Logo、文字、价格、图标、配件或可识别主体。画面仅保留空场景、背景材质、光影氛围、台面空间和后期合成留白。";
@@ -178,18 +184,51 @@ function getSelectedSellingPoints() {
 function getSelectedBackgroundStyles() {
   const selected = selectedChipValues("#backgroundStyleChips");
   const custom = splitPoints($("#bgStyleCustom")?.value || "");
-  const combined = uniqueList([...selected, ...custom]);
+  const legacyMixedStyles = new Set([
+    ...Object.keys(BACKGROUND_STYLE_MAP),
+    ...Object.keys(BACKGROUND_STYLE_DESCRIPTIONS).filter((item) => !QUICK_BACKGROUND_SCENES.includes(item)),
+    ...QUICK_BACKGROUND_DECORATIONS,
+    ...QUICK_BACKGROUND_MATERIALS,
+    ...QUICK_LIGHTING_EFFECTS,
+    ...knowledgeItems("sceneTemplates").map((item) => item.name),
+  ]);
+  const sceneCustom = custom.filter((item) => !legacyMixedStyles.has(item));
+  const combined = uniqueList([...sceneCustom, ...selected]);
   if (combined.length) return combined;
-  return ["玻璃花瓣"];
+  return ["现代厨房"];
+}
+
+function getSelectedBackgroundScene() {
+  return getSelectedBackgroundStyles()[0] || "现代厨房";
+}
+
+function getSelectedBackgroundMaterial() {
+  return selectedRadioValue("#backgroundMaterialChips", "无材质");
+}
+
+function getSelectedBackgroundDecoration() {
+  return selectedRadioValue("#backgroundDecorationChips", "无");
+}
+
+function getSelectedLightingEffect() {
+  return selectedRadioValue("#lightingEffectChips", "柔和漫反射");
+}
+
+function getEffectWordData() {
+  const enabled = Boolean($("#effectWordEnabled")?.checked);
+  const text = ($("#effectWordText")?.value || "").trim();
+  return {
+    enabled: enabled && Boolean(text),
+    text,
+  };
 }
 
 function primaryBackgroundStyle() {
-  const selected = getSelectedBackgroundStyles()[0] || "玻璃花瓣";
-  return BACKGROUND_STYLE_MAP[selected] || selected;
+  return getSelectedBackgroundScene();
 }
 
 function getSelectedTone() {
-  return uniqueList([...selectedChipValues("#toneChips"), ...splitPoints($("#bgToneCustom")?.value || "")]).join(" + ") || "浅金";
+  return uniqueList([...selectedChipValues("#toneChips"), ...splitPoints($("#bgToneCustom")?.value || "")])[0] || "米白";
 }
 
 function selectedRadioValue(containerId, fallback) {
@@ -220,6 +259,7 @@ function getFormData() {
   const isBackground = purpose === BACKGROUND_PURPOSE;
   const points = isBackground ? [] : getSelectedSellingPoints();
   const backgroundStyles = isBackground ? getSelectedBackgroundStyles() : [];
+  const effectWord = isBackground ? getEffectWordData() : { enabled: false, text: "" };
   const productType = isBackground ? $("#bgProductType").value || "其他" : $("#productType").value.trim() || "【产品类型】";
   return {
     productType,
@@ -229,6 +269,12 @@ function getFormData() {
     platform: isBackground ? "京东" : $("#platform").value,
     visualStyle: isBackground ? primaryBackgroundStyle() : $("#visualStyle").value,
     backgroundStyles,
+    backgroundScene: isBackground ? getSelectedBackgroundScene() : "",
+    backgroundMaterial: isBackground ? getSelectedBackgroundMaterial() : "",
+    backgroundDecoration: isBackground ? getSelectedBackgroundDecoration() : "",
+    lightingEffect: isBackground ? getSelectedLightingEffect() : "",
+    effectWordEnabled: effectWord.enabled,
+    effectWordText: effectWord.text,
     tone: isBackground ? getSelectedTone() : "",
     mainLayoutRule: isBackground ? getSelectedMainLayoutRule() : "",
     assistLayoutRules: isBackground ? getSelectedAssistLayoutRules() : [],
@@ -253,8 +299,16 @@ function setFormData(data = {}) {
   $("#sellingPoints").value = Array.isArray(data.points) ? data.points.join("\n") : data.sellingPoints || "";
   $("#platform").value = data.platform || $("#platform").value;
   $("#visualStyle").value = data.visualStyle || $("#visualStyle").value;
-  $("#bgToneCustom").value = data.tone && !QUICK_TONES.includes(data.tone) ? data.tone : "";
+  const knownScenes = uniqueList([...QUICK_BACKGROUND_SCENES, ...backgroundModuleItems("scene").map((item) => item.name)]);
+  const legacyScene = data.backgroundStyles?.find((item) => knownScenes.includes(item)) || "";
+  const savedScene = data.backgroundScene || legacyScene;
+  $("#bgStyleCustom").value = savedScene && !knownScenes.includes(savedScene) ? savedScene : "";
+  const knownColors = uniqueList([...QUICK_TONES, ...backgroundModuleItems("color").map((item) => item.name)]);
+  $("#bgToneCustom").value = data.tone && !knownColors.includes(data.tone) ? data.tone : "";
   $("#bgSpecial").value = data.purpose === BACKGROUND_PURPOSE ? data.appearance || "" : "";
+  $("#effectWordEnabled").checked = Boolean(data.effectWordEnabled && data.effectWordText);
+  $("#effectWordText").value = data.effectWordText || "";
+  $("#effectWordField").hidden = !$("#effectWordEnabled").checked;
   $("#productDisplay").value = data.productDisplay || DEFAULT_DISPLAY_MODE;
   $("#campaign").value = data.campaign && data.campaign !== "活动到手价" ? data.campaign : "";
   $("#benefits").value =
@@ -294,6 +348,12 @@ function compactData(data) {
     platform: data.platform,
     visualStyle: data.visualStyle,
     backgroundStyles: data.backgroundStyles,
+    backgroundScene: data.backgroundScene,
+    backgroundMaterial: data.backgroundMaterial,
+    backgroundDecoration: data.backgroundDecoration,
+    lightingEffect: data.lightingEffect,
+    effectWordEnabled: data.effectWordEnabled,
+    effectWordText: data.effectWordText,
     tone: data.tone,
     mainLayoutRule: data.mainLayoutRule,
     assistLayoutRules: data.assistLayoutRules,
@@ -408,6 +468,22 @@ function knowledgeItems(key) {
   return keywordData?.knowledge?.[key]?.items || [];
 }
 
+function backgroundModuleItems(type) {
+  return knowledgeItems("backgroundModules").filter((item) => item.type === type);
+}
+
+function backgroundModuleByName(type, name) {
+  const normalizedName = normalize(name);
+  return backgroundModuleItems(type).find((item) => {
+    const names = [item.name, ...(item.aliases || [])].map(normalize);
+    return names.some((entry) => entry && (entry === normalizedName || entry.includes(normalizedName) || normalizedName.includes(entry)));
+  });
+}
+
+function selectedModule(type, name, fallback = {}) {
+  return backgroundModuleByName(type, name) || fallback;
+}
+
 function searchableText(item) {
   return [item.name, item.id, ...(item.aliases || []), ...(item.keywords || [])].filter(Boolean).join(" ");
 }
@@ -462,6 +538,11 @@ function buildKnowledgeContext(data) {
     data.points.join(" "),
     data.visualStyle,
     backgroundStyleText,
+    data.backgroundScene,
+    data.backgroundMaterial,
+    data.backgroundDecoration,
+    data.lightingEffect,
+    data.effectWordText,
     data.tone,
     data.mainLayoutRule,
     ...(data.assistLayoutRules || []),
@@ -479,6 +560,13 @@ function buildKnowledgeContext(data) {
     [...defaultLayoutsFor(data), ...explicitLayouts].find((item) => item.name === name),
   );
   const platformRules = matchKnowledge("platformRules", [data.platform], 2);
+  const backgroundModules = matchKnowledge("backgroundModules", [
+    data.backgroundScene,
+    data.backgroundMaterial,
+    data.tone,
+    data.backgroundDecoration,
+    data.lightingEffect,
+  ], 10);
   const promptRecipe = recipeForPurpose(data.purpose);
 
   return {
@@ -487,6 +575,7 @@ function buildKnowledgeContext(data) {
     sceneTemplates,
     layoutRules,
     platformRules,
+    backgroundModules,
     promptRecipe,
     sceneTerms: sceneTemplates.flatMap((item) => [
       item.name,
@@ -516,6 +605,7 @@ function buildKnowledgeContext(data) {
       ...productTypes.flatMap((item) => item.taboos || []),
       ...sellingPoints.flatMap((item) => item.tabooExpressions || []),
       ...sceneTemplates.flatMap((item) => item.negativeKeywords || []),
+      ...backgroundModules.flatMap((item) => item.forbid || []),
       ...layoutRules.flatMap((item) => item.taboos || []),
       ...platformRules.flatMap((item) => item.taboos || []),
       ...(promptRecipe?.mustForbid || []),
@@ -536,6 +626,7 @@ function knowledgeSummarySections(knowledge) {
         `产品规则：${formatKnowledgeNames(knowledge.productTypes)}`,
         `卖点规则：${formatKnowledgeNames(knowledge.sellingPoints)}`,
         `场景规则：${formatKnowledgeNames(knowledge.sceneTemplates)}`,
+        `背景模块：${formatKnowledgeNames(knowledge.backgroundModules || [])}`,
         `版式规则：${formatKnowledgeNames(knowledge.layoutRules)}`,
         `平台规则：${formatKnowledgeNames(knowledge.platformRules)}`,
         `输出用途：${knowledge.promptRecipe?.name || "未命中，使用原用途逻辑"}`,
@@ -666,8 +757,159 @@ function joinText(items) {
   return uniqueList(items).filter(Boolean).join("，");
 }
 
+function moduleKeywords(type, name) {
+  const item = selectedModule(type, name, { name, keywords: [name], forbid: [] });
+  return uniqueList([item.name, ...(item.keywords || [])]);
+}
+
+function moduleForbid(type, name) {
+  return selectedModule(type, name, { forbid: [] }).forbid || [];
+}
+
+function isKitchenScene(data) {
+  return /厨房|中岛/.test(data.backgroundScene || data.visualStyle || "");
+}
+
+function isPureColorScene(data) {
+  return /纯色/.test(data.backgroundScene || "");
+}
+
+function isNoRealScene(data) {
+  return /纯色|渐变|棚拍|科技/.test(data.backgroundScene || "");
+}
+
+function backgroundPriorityLines(data) {
+  return [
+    "Prompt优先级：产品特殊规则 > 背景类型 > 背景色调 > 光效 > 特效字 > 摄影方式 > 材质 > 通用规则",
+    `背景场景只允许使用：${data.backgroundScene || "现代厨房"}`,
+    "不得自动混入用户未选择的其它背景场景",
+    `背景色调最高优先级：整体背景必须以${data.tone || "米白"}为唯一主色调`,
+    "背景色调必须统一，不允许混合多个主色，不允许被场景默认色覆盖",
+  ];
+}
+
+function sceneIsolationLines(data) {
+  const scene = data.backgroundScene || "现代厨房";
+  const lines = [
+    `${scene}是唯一背景场景`,
+    "只读取当前背景场景模块，不跨分类调用其它场景关键词",
+  ];
+  if (isPureColorScene(data)) {
+    lines.push(
+      "纯色背景模式：禁止生成厨房、生活场景、家具、客厅、餐厅、餐桌、真实空间",
+      "仅生成商业摄影棚拍背景和单色空间",
+    );
+  } else if (isKitchenScene(data)) {
+    lines.push(
+      "厨房背景模式：只输出厨房空间关键词",
+      "不得混入纯色背景、科技空间、抽象棚拍或未选择的其它场景",
+      "厨房后景只作为轻微虚化生活氛围，不成为视觉主体",
+    );
+  } else if (/科技/.test(scene)) {
+    lines.push("科技空间模式：禁止混入厨房、生活场景、家具、餐桌和真实烹饪状态");
+  } else if (isNoRealScene(data)) {
+    lines.push("无真实场景模式：禁止生成厨房、家具、餐桌和生活道具");
+  }
+  return uniqueList(lines);
+}
+
+function colorPriorityLines(data) {
+  const tone = data.tone || "米白";
+  return [
+    `整体背景必须以${tone}为主色`,
+    `${tone}是唯一主色调`,
+    "背景色调统一，不允许出现另一个主色抢占画面",
+    `禁止与${tone}冲突的暖黄、冷蓝、红金或黑金默认色自动混入`,
+    ...moduleKeywords("color", tone),
+    ...moduleForbid("color", tone).map((item) => `禁止${item}`),
+  ];
+}
+
+function materialLines(data) {
+  if (!data.backgroundMaterial || data.backgroundMaterial === "无材质") return ["背景材质不额外强化，保持干净商业摄影质感"];
+  return [
+    `背景材质只使用：${data.backgroundMaterial}`,
+    ...moduleKeywords("material", data.backgroundMaterial),
+    "材质只作为背景肌理，不改变产品真实外观",
+  ];
+}
+
+function decorationLines(data) {
+  if (!data.backgroundDecoration || data.backgroundDecoration === "无") {
+    return ["无背景特效装饰，背景保持干净，不添加花瓣、晶体、粒子或能量线"];
+  }
+  return [
+    `背景特效只使用：${data.backgroundDecoration}`,
+    ...moduleKeywords("decoration", data.backgroundDecoration),
+    "背景特效主要围绕产品主体附近和产品后方",
+    "背景特效不铺满整个背景，不遮挡产品，不抢主体",
+    ...moduleForbid("decoration", data.backgroundDecoration).map((item) => `禁止${item}`),
+  ];
+}
+
+function lightingEffectLines(data) {
+  if (!data.lightingEffect || data.lightingEffect === "无特殊光效") {
+    return ["无特殊光效，只保留真实商业摄影基础布光"];
+  }
+  return [
+    `光效只使用：${data.lightingEffect}`,
+    ...moduleKeywords("lighting", data.lightingEffect),
+    "所有光效主要集中在产品主体附近",
+    "不允许整个背景都是特效光",
+    "光效仅作为产品氛围增强，不影响主体识别",
+  ];
+}
+
+function effectWordLines(data) {
+  if (!data.effectWordEnabled || !data.effectWordText) return ["不生成背景特效大字"];
+  return [
+    `背景大型立体特效字内容：${data.effectWordText}`,
+    "特效字位于产品后方背景",
+    "特效字不遮挡产品、不压住控制面板、不抢主体",
+    "特效字材质由AI按当前背景自动匹配，可为金属字、玻璃字或能量字",
+    "特效字与整体背景风格和主色调统一",
+  ];
+}
+
+function kitchenCounterLines() {
+  return [
+    "前景必须为完整厨房岛台 Kitchen Island",
+    "厨房岛台从画面左侧一直延伸到画面右侧",
+    "台面铺满整个画面底部",
+    "kitchen island countertop spans the full width of the frame",
+    "full-width countertop",
+    "countertop fills the entire foreground",
+    "不允许出现独立餐桌",
+    "不允许出现桌边悬空",
+    "不允许只有局部桌面",
+  ];
+}
+
+function kitchenProductFocusLines() {
+  return [
+    "产品主体占画面宽度约55%-60%",
+    "产品高度约占画面65%-70%",
+    "使用京东搜索主图构图",
+    "产品始终作为第一视觉主体",
+    "medium close-up product shot",
+    "camera closer to product",
+    "large product presentation",
+    "avoid small product",
+    "avoid distant camera",
+    "背景仅作为生活氛围并保持轻微虚化",
+    "background serves only as atmosphere",
+    "background should not dominate the frame",
+    "keep product as the primary visual focus",
+    "Eye-level camera",
+    "Slightly low angle",
+    "避免俯拍",
+    "避免远景厨房",
+  ];
+}
+
 function continuousCounterLines() {
   return [
+    ...kitchenCounterLines(),
     "厨房岛台从画面底部延伸至左右边缘",
     "同一张连续工作台面",
     "完整厨房操作台",
@@ -744,7 +986,11 @@ function assistCompositionLines(data) {
     lines.push("画面保留大面积干净可排版空间，信息层级清晰不拥挤");
   }
   if (rules.includes("前景台面空间") || rules.includes("台面展示区")) {
-    lines.push(...continuousCounterLines());
+    if (isKitchenScene(data)) {
+      lines.push(...continuousCounterLines());
+    } else {
+      lines.push("前景为干净商业展示台面或棚拍地台", "台面与背景空间连续", "不生成厨房岛台、餐桌或生活家具");
+    }
   }
   return uniqueList(lines);
 }
@@ -811,55 +1057,52 @@ function blankAreaLines(data) {
 function buildSceneBlueprint(data, ctx, options = {}) {
   const template = options.template || {};
   const seed = ctx.seed;
-  const sceneSource = template.sceneDirection || [...ctx.category.scenes, ...ctx.style.scene];
-  const elementSource = template.visualElements || ctx.backgroundElements;
-  const textureSource = template.texture || ctx.lighting;
-  const isGlassPetal = template.id === "glassPetal";
+  const sceneSource = template.sceneDirection || ctx.backgroundSceneTerms || moduleKeywords("scene", data.backgroundScene);
+  const elementSource = template.visualElements || ctx.backgroundElementTerms || ctx.backgroundElements;
+  const textureSource = template.texture || ctx.backgroundLightingTerms || ctx.lighting;
   const commercialBase = [
-    `${data.platform}厨房小家电商业视觉场景`,
+    `${data.platform}电商商业视觉场景`,
     "1:1正方形电商底图",
     "真实商业摄影棚拍质感",
     "后期可直接排版主图信息",
+    ...backgroundPriorityLines(data),
+    ...sceneIsolationLines(data),
   ];
   if (isInductionCooker(data)) {
     commercialBase.push(
       "产品特殊规则优先级高于场景规则和通用规则",
-      "厨房只作为背景空间，不生成真实使用状态",
+      `${isKitchenScene(data) ? "厨房" : "当前背景"}只作为背景空间，不生成真实使用状态`,
       "商品摄影展示状态，不是生活场景摆拍",
     );
   }
-  const sceneTone = isGlassPetal
-    ? ["玻璃花瓣高质感场景", "浅金/米白/银灰统一空间", "现代厨房与抽象棚拍融合"]
-    : pick(sceneSource, seed, 3);
+  const sceneTone = pick(sceneSource, seed, 5);
   const spatialBase = [
     "画面分为连续工作台面层、中景展示层、后景氛围层",
     ...productCompositionLines(data),
     ...assistCompositionLines(data),
     "空间透视稳定，台面水平线清楚",
+    ...(isKitchenScene(data) ? kitchenProductFocusLines() : []),
   ];
   const lightBase = [
+    ...lightingEffectLines(data),
     ...pick(textureSource, seed + 1, 4),
-    "主光从左上方进入",
-    "商品位后方有柔和轮廓背光",
+    "主光服务产品识别",
+    "商品位后方有柔和轮廓光",
     "台面保留真实接触阴影",
     "暗部不过脏，亮部不过曝",
   ];
-  const foreground = isGlassPetal
+  const foreground = isKitchenScene(data)
     ? [
-        "前景来自同一张连续厨房岛台",
-        "连续工作台面边缘有轻微反射和真实阴影承接",
-        "少量半透明玻璃花瓣只做边缘点缀",
-        "右下角保留干净空位，方便后期放证据模块",
+        "前景来自同一张连续厨房岛台或完整厨房操作台",
+        "连续工作台面有轻微反射和真实接触阴影",
+        "前景元素尺寸低于商品展示区，不抢主体",
         ...continuousCounterLines(),
         ...counterNegativeLines(),
       ]
     : [
-        "前景来自同一张连续厨房岛台或完整厨房操作台",
-        "连续工作台面有轻微反射和真实接触阴影",
-        "可加入少量低干扰生活道具",
-        "前景元素尺寸低于商品展示区，不抢主体",
-        ...continuousCounterLines(),
-        ...counterNegativeLines(),
+        "前景为干净商业展示台面或棚拍地台",
+        "前景只服务产品承接和后期合成",
+        "不得生成厨房岛台、餐桌或生活家具，除非背景场景已明确选择厨房",
       ];
   const midground = [
     "中景是画面视觉中心和商品承载区",
@@ -868,33 +1111,15 @@ function buildSceneBlueprint(data, ctx, options = {}) {
     "商品区边缘有轮廓光、台面投影和轻微反射",
     "不让装饰、花瓣、粒子或光效穿过控制面板与Logo区域",
   ];
-  const background = isGlassPetal
-    ? [
-        "后景为现代厨房或抽象商业棚拍空间",
-        "透明玻璃花瓣和半透明晶体花瓣位于中后景",
-        "椭圆背光在商品位后方托亮轮廓",
-        "细腻粒子和柔和折射形成通透层次",
-        "后景虚化但仍有完整空间纵深",
-      ]
-    : [
-        ...pick(elementSource, seed + 2, 4),
-        "后景虚化处理形成纵深",
-        "氛围元素围绕商品位后方和底部舞台分布",
-        "背景服务商品展示和后期排版，不抢主体",
-      ];
-  const colors = isGlassPetal
-    ? [
-        "主色为浅金、米白、银灰",
-        "辅色为透明玻璃质感和柔和暖白光",
-        "点缀色使用少量香槟金高光",
-        "整体清透明亮、低饱和、高级不廉价",
-      ]
-    : [
-        `主色跟随${data.visualStyle}，保持低干扰商业底色`,
-        "辅色用于台面、后景和空间层次",
-        "点缀色只用于少量光效和成交氛围",
-        "色彩不做单一素材堆叠，必须形成完整空间关系",
-      ];
+  const background = [
+    ...pick(elementSource, seed + 2, 6),
+    ...decorationLines(data),
+    ...effectWordLines(data),
+    "后景虚化处理形成纵深",
+    "氛围元素围绕商品位后方和底部舞台分布",
+    "背景服务商品展示和后期排版，不抢主体",
+  ];
+  const colors = colorPriorityLines(data);
   const blank = blankAreaLines(data);
   const productArea = [
     ...productAreaLines(data),
@@ -916,6 +1141,11 @@ function buildSceneBlueprint(data, ctx, options = {}) {
 
 function pureLayoutText(text) {
   return String(text || "")
+    .replace(/产品附近|商品附近/g, "后期合成区域附近")
+    .replace(/产品后方|商品后方/g, "后期合成区域后方")
+    .replace(/产品周围|商品周围/g, "后期合成区域周围")
+    .replace(/遮挡产品|遮挡商品/g, "遮挡后期合成区域")
+    .replace(/产品主体附近|商品主体附近/g, "后期合成区域附近")
     .replace(/右侧预留产品位/g, "右侧预留后期合成空间")
     .replace(/产品占位|商品占位/g, "后期合成空间")
     .replace(/产品展示区|商品展示区|产品主体|商品主体|右侧主体|主体构图/g, "后期合成留区")
@@ -927,15 +1157,17 @@ function pureLayoutText(text) {
 function buildPureBackgroundBlueprint(data, ctx, options = {}) {
   const template = options.template || {};
   const seed = ctx.seed;
-  const sceneSource = template.sceneDirection || [...(data.backgroundStyles || []), ...ctx.knowledge.sceneTerms, ...ctx.style.scene];
-  const elementSource = template.visualElements || [...(data.backgroundStyles || []), ...ctx.knowledge.sceneTerms, ...ctx.style.scene];
-  const textureSource = template.texture || ctx.lighting;
-  const selectedStyles = data.backgroundStyles?.length ? data.backgroundStyles.join("、") : data.visualStyle;
+  const sceneSource = template.sceneDirection || ctx.backgroundSceneTerms || moduleKeywords("scene", data.backgroundScene);
+  const elementSource = template.visualElements || ctx.backgroundElementTerms || ctx.backgroundElements;
+  const textureSource = template.texture || ctx.backgroundLightingTerms || ctx.lighting;
+  const selectedStyles = data.backgroundScene || data.visualStyle;
   const layoutRules = pureCompositionLines(data);
   const sceneTone = pick(
     [
+      ...backgroundPriorityLines(data),
+      ...sceneIsolationLines(data),
       `${selectedStyles}空场景`,
-      `${data.tone || "浅金"}色调商业摄影底图`,
+      `${data.tone || "米白"}色调商业摄影底图`,
       ...sceneSource,
       "无商品陈列",
       "后期排版空场景",
@@ -949,34 +1181,44 @@ function buildPureBackgroundBlueprint(data, ctx, options = {}) {
     ...blankAreaLines(data).map(pureLayoutText),
     "后期合成区域为空台面和背景空间，不出现任何实体物体",
     "画面保留光影聚焦区域，但不得生成任何主体",
+    ...(isKitchenScene(data) ? kitchenCounterLines() : []),
   ];
   const light = [
-    ...pick(textureSource, seed + 1, 4),
+    ...lightingEffectLines(data).map(pureLayoutText),
+    ...pick(textureSource, seed + 1, 4).map(pureLayoutText),
     "柔和商业摄影布光",
     "空台面真实接触光影",
     "背景由中心偏右向四周自然过渡",
     "光影层次清楚，亮部不过曝，暗部不脏灰",
   ];
-  const foreground = [
-    "前景只保留同一张连续厨房岛台或完整厨房操作台",
-    "连续工作台面有轻微材质反射",
-    "台面边缘清晰但低干扰",
-    ...continuousCounterLines(),
-    ...counterNegativeLines(),
-    "不摆放餐具、食物、瓶罐、包装或装饰摆件",
-  ];
+  const foreground = isKitchenScene(data)
+    ? [
+        "前景只保留同一张连续厨房岛台或完整厨房操作台",
+        "连续工作台面有轻微材质反射",
+        "台面边缘清晰但低干扰",
+        ...continuousCounterLines(),
+        ...counterNegativeLines(),
+        "不摆放餐具、食物、瓶罐、包装或装饰摆件",
+      ]
+    : [
+        "前景只保留干净商业棚拍台面或地台",
+        "不出现厨房岛台、餐桌、家具或生活场景",
+        "不摆放餐具、食物、瓶罐、包装或装饰摆件",
+      ];
   const background = [
-    ...pick(elementSource, seed + 2, 5),
+    ...pick(elementSource, seed + 2, 5).map(pureLayoutText),
+    ...decorationLines(data).map(pureLayoutText),
+    ...effectWordLines(data).map(pureLayoutText),
     "背景元素仅作为材质氛围",
     "背景有景深和空间纵深",
     "背景装饰停留在边缘和后景",
     "留白区域干净可排版",
   ];
   const colors = [
-    `主色为${data.tone || "浅金"}，辅色跟随${selectedStyles}`,
+    ...colorPriorityLines(data),
+    ...materialLines(data),
     "整体低干扰、干净、明亮、有商业摄影质感",
     "点缀光效只服务空间层次",
-    "色调统一但不单调",
   ];
   const blank = [
     ...layoutRules.map((item) => `${item}必须保持干净可用`),
@@ -1046,40 +1288,61 @@ function buildContext(data) {
   const style = styleData(data.visualStyle);
   const knowledge = buildKnowledgeContext(data);
   const seed = generationCount + data.productType.length + data.points.join("").length;
-  const sceneBase = pick([...knowledge.sceneTerms, ...category.scenes, ...style.scene], seed, 4);
+  const isBackground = data.purpose === BACKGROUND_PURPOSE;
+  const backgroundSceneTerms = [
+    ...backgroundPriorityLines(data),
+    ...sceneIsolationLines(data),
+    ...moduleKeywords("scene", data.backgroundScene || data.visualStyle),
+  ];
+  const backgroundElementTerms = [
+    ...materialLines(data),
+    ...decorationLines(data),
+    ...effectWordLines(data),
+  ];
+  const backgroundLightingTerms = [
+    ...lightingEffectLines(data),
+    ...(isKitchenScene(data) ? kitchenProductFocusLines() : []),
+  ];
+  const sceneBase = isBackground
+    ? pick(backgroundSceneTerms, seed, 5)
+    : pick([...knowledge.sceneTerms, ...category.scenes, ...style.scene], seed, 4);
   const scenePosition = sceneBase.join("，");
   const layoutSource = data.layoutRules?.length
     ? [...knowledge.layoutTerms, ...productCompositionLines(data)]
     : [...knowledge.layoutTerms, ...category.layouts, "右侧主体构图", "左侧预留排版区", "底部留白15%"];
   const layout = pick(layoutSource, seed + 1, data.layoutRules?.length ? 5 : 5);
   const backgroundElements = pick(
-    [
-      ...knowledge.sceneTerms,
-      ...knowledge.sellingTerms,
-      ...category.vocabulary,
-      ...style.scene,
-      "玻璃花瓣",
-      "柔和蒸汽粒子",
-      "流光材质",
-      "浅金色能量线",
-      "细腻台面纹理",
-      "远景厨房虚化",
-      "高端材质反射",
-    ],
+    isBackground
+      ? backgroundElementTerms
+      : [
+          ...knowledge.sceneTerms,
+          ...knowledge.sellingTerms,
+          ...category.vocabulary,
+          ...style.scene,
+          "玻璃花瓣",
+          "柔和蒸汽粒子",
+          "流光材质",
+          "浅金色能量线",
+          "细腻台面纹理",
+          "远景厨房虚化",
+          "高端材质反射",
+        ],
     seed + 2,
     6,
   );
   const lighting = pick(
-    [
-      ...knowledge.lightingTerms,
-      ...style.title,
-      "暖金色自然光",
-      "高级棚拍光",
-      "柔和阴影",
-      "层次高光",
-      "产品边缘轮廓光",
-      "低干扰背景光",
-    ],
+    isBackground
+      ? backgroundLightingTerms
+      : [
+          ...knowledge.lightingTerms,
+          ...style.title,
+          "暖金色自然光",
+          "高级棚拍光",
+          "柔和阴影",
+          "层次高光",
+          "产品边缘轮廓光",
+          "低干扰背景光",
+        ],
     seed + 3,
     5,
   );
@@ -1101,6 +1364,9 @@ function buildContext(data) {
     layout,
     backgroundElements,
     lighting,
+    backgroundSceneTerms,
+    backgroundElementTerms,
+    backgroundLightingTerms,
     evidence,
     selling,
   };
@@ -1164,9 +1430,6 @@ function buildMainImageResult(data, ctx) {
 }
 
 function buildBackgroundResult(data, ctx) {
-  if (ctx.style.backgroundTemplate?.id === "glassPetal") {
-    return buildGlassPetalBackgroundResult(data, ctx);
-  }
   const blueprint = buildSceneBlueprint(data, ctx);
   const pureBlueprint = buildPureBackgroundBlueprint(data, ctx);
   const displayNegative = displayNegativeText(data);
@@ -1178,7 +1441,7 @@ function buildBackgroundResult(data, ctx) {
   const purePrompt = buildPureBackgroundPrompt(
     data,
     pureBlueprint,
-    "右侧保留大面积干净留白区域，用于后期合成；右侧为空台面和背景空间，不出现任何实体物体；画面中心偏右保留光影聚焦区域，但不得生成任何主体。",
+    `${isPureColorScene(data) ? "纯色背景模式下禁止厨房、生活场景、家具和真实空间；" : ""}右侧保留大面积干净留白区域，用于后期合成；右侧为空台面和背景空间，不出现任何实体物体；画面中心偏右保留光影聚焦区域，但不得生成任何主体。`,
   );
   return createResult({
     purpose: "背景图",
@@ -1701,6 +1964,8 @@ function renderChoiceGroup(containerId, items, name, selected = "") {
 }
 
 function styleDescription(name) {
+  const module = knowledgeItems("backgroundModules").find((item) => item.name === name);
+  if (module?.description) return module.description;
   return BACKGROUND_STYLE_DESCRIPTIONS[name] || "来自知识库的可复用背景方向";
 }
 
@@ -1708,9 +1973,9 @@ function renderBackgroundStyleCards(containerId, items, selected = []) {
   const selectedSet = new Set(selected);
   $(containerId).innerHTML = items
     .map(
-      (item) => `
+      (item, index) => `
         <label class="style-card">
-          <input type="checkbox" name="backgroundStyleQuick" value="${escapeHtml(item)}" ${selectedSet.has(item) ? "checked" : ""} />
+          <input type="radio" name="backgroundStyleQuick" value="${escapeHtml(item)}" ${selectedSet.has(item) || (!selectedSet.size && index === 0) ? "checked" : ""} />
           <div class="style-card-body">
             <div class="style-thumb" aria-hidden="true"></div>
             <div class="style-copy">
@@ -1729,14 +1994,47 @@ function syncChipsFromData(data = {}) {
   document.querySelectorAll("#sellingPointChips input").forEach((input) => {
     input.checked = pointSet.has(input.value);
   });
-  const styleSet = new Set(data.backgroundStyles || [data.visualStyle].filter(Boolean));
+  const styleSet = new Set([data.backgroundScene, ...(data.backgroundStyles || []), data.visualStyle].filter(Boolean));
   document.querySelectorAll("#backgroundStyleChips input").forEach((input) => {
     input.checked = styleSet.has(input.value) || styleSet.has(BACKGROUND_STYLE_MAP[input.value]);
   });
+  if (!document.querySelector("#backgroundStyleChips input:checked")) {
+    const fallbackScene = document.querySelector("#backgroundStyleChips input[value='现代厨房']") || document.querySelector("#backgroundStyleChips input");
+    if (fallbackScene) fallbackScene.checked = true;
+  }
+  const material = data.backgroundMaterial || "无材质";
+  document.querySelectorAll("#backgroundMaterialChips input").forEach((input) => {
+    input.checked = input.value === material;
+  });
+  if (!document.querySelector("#backgroundMaterialChips input:checked")) {
+    const fallbackMaterial = document.querySelector("#backgroundMaterialChips input[value='无材质']") || document.querySelector("#backgroundMaterialChips input");
+    if (fallbackMaterial) fallbackMaterial.checked = true;
+  }
   const toneSet = new Set(String(data.tone || "").split(/\s*\+\s*/).filter(Boolean));
   document.querySelectorAll("#toneChips input").forEach((input) => {
     input.checked = toneSet.has(input.value);
   });
+  if (!document.querySelector("#toneChips input:checked")) {
+    const fallbackTone = document.querySelector("#toneChips input[value='米白']") || document.querySelector("#toneChips input");
+    if (fallbackTone) fallbackTone.checked = true;
+  }
+  const legacyDecoration = (data.backgroundStyles || []).find((item) => QUICK_BACKGROUND_DECORATIONS.includes(item)) || "";
+  const decoration = data.backgroundDecoration || legacyDecoration || "无";
+  document.querySelectorAll("#backgroundDecorationChips input").forEach((input) => {
+    input.checked = input.value === decoration;
+  });
+  if (!document.querySelector("#backgroundDecorationChips input:checked")) {
+    const fallbackDecoration = document.querySelector("#backgroundDecorationChips input[value='无']") || document.querySelector("#backgroundDecorationChips input");
+    if (fallbackDecoration) fallbackDecoration.checked = true;
+  }
+  const lighting = data.lightingEffect || "柔和漫反射";
+  document.querySelectorAll("#lightingEffectChips input").forEach((input) => {
+    input.checked = input.value === lighting;
+  });
+  if (!document.querySelector("#lightingEffectChips input:checked")) {
+    const fallbackLighting = document.querySelector("#lightingEffectChips input[value='柔和漫反射']") || document.querySelector("#lightingEffectChips input");
+    if (fallbackLighting) fallbackLighting.checked = true;
+  }
   const layoutSet = new Set(data.layoutRules || []);
   const mainLayout = normalizeMainLayoutName(data.mainLayoutRule || [...layoutSet].find((item) => MAIN_LAYOUT_RULES.includes(normalizeMainLayoutName(item))) || "");
   document.querySelectorAll("#mainLayoutChips input").forEach((input) => {
@@ -1756,7 +2054,7 @@ function updateModeUI() {
     item.hidden = item.dataset.modePanel !== (isBackground ? "background" : "main");
   });
   $("#modeTitle").textContent = isBackground ? "底图关键词" : "主图关键词";
-  $("#modeHint").textContent = isBackground ? "背景 / 色调 / 构图" : "产品 / 卖点 / 平台";
+  $("#modeHint").textContent = isBackground ? "场景 / 材质 / 色调 / 光效" : "产品 / 卖点 / 平台";
   $("#generateBtn").textContent = isBackground ? "生成底图关键词" : "生成主图关键词";
   const metric = $("#metricPrice");
   if (metric) metric.textContent = isBackground ? "预览版 + 纯背景版" : "产品预览版关键词";
@@ -1816,6 +2114,7 @@ function populateControls() {
   ]).filter((item) => ["京东", "天猫", "淘宝"].includes(item));
   const visualStyles = uniqueList([
     ...Object.keys(keywordData.visualStyles),
+    ...QUICK_BACKGROUND_SCENES,
     ...knowledgeItems("sceneTemplates").map((item) => item.name),
   ]);
   $("#platform").innerHTML = platforms.map((item) => `<option>${item}</option>`).join("");
@@ -1840,9 +2139,16 @@ function populateControls() {
     )
     .join("");
   renderChipGroup("#sellingPointChips", QUICK_SELLING_POINTS, "sellingPointQuick", ["低糖饭"]);
-  const sceneStyleOptions = knowledgeItems("sceneTemplates").map((item) => item.name);
-  renderBackgroundStyleCards("#backgroundStyleChips", uniqueList([...QUICK_BACKGROUND_STYLES, ...sceneStyleOptions]), ["玻璃花瓣"]);
-  renderChipGroup("#toneChips", QUICK_TONES, "toneQuick", ["浅金"]);
+  const sceneStyleOptions = backgroundModuleItems("scene").map((item) => item.name);
+  const materialOptions = backgroundModuleItems("material").map((item) => item.name);
+  const colorOptions = backgroundModuleItems("color").map((item) => item.name);
+  const decorationOptions = backgroundModuleItems("decoration").map((item) => item.name);
+  const lightingOptions = backgroundModuleItems("lighting").map((item) => item.name);
+  renderBackgroundStyleCards("#backgroundStyleChips", uniqueList([...QUICK_BACKGROUND_SCENES, ...sceneStyleOptions]), ["现代厨房"]);
+  renderChoiceGroup("#backgroundMaterialChips", uniqueList([...QUICK_BACKGROUND_MATERIALS, ...materialOptions]), "backgroundMaterialQuick", "无材质");
+  renderChoiceGroup("#toneChips", uniqueList([...QUICK_TONES, ...colorOptions]), "toneQuick", "米白");
+  renderChoiceGroup("#backgroundDecorationChips", uniqueList([...QUICK_BACKGROUND_DECORATIONS, ...decorationOptions]), "backgroundDecorationQuick", "无");
+  renderChoiceGroup("#lightingEffectChips", uniqueList([...QUICK_LIGHTING_EFFECTS, ...lightingOptions]), "lightingEffectQuick", "柔和漫反射");
   renderChoiceGroup("#mainLayoutChips", MAIN_LAYOUT_RULES, "mainLayoutQuick", "右侧产品占位");
   renderChipGroup("#assistLayoutChips", ASSIST_LAYOUT_RULES, "assistLayoutQuick", ["底部预留价格区", "右下角留白"]);
   $("#productTypeList").innerHTML = uniqueList([
@@ -1932,8 +2238,13 @@ document.addEventListener("click", (event) => {
 document.addEventListener("change", (event) => {
   if (event.target.matches("input[name='purpose']")) updateModeUI();
   if (event.target.closest("#backgroundStyleChips")) {
+    $("#bgStyleCustom").value = "";
     const selected = getSelectedBackgroundStyles()[0];
     if (selected) $("#visualStyle").value = primaryBackgroundStyle();
+  }
+  if (event.target.matches("#effectWordEnabled")) {
+    $("#effectWordField").hidden = !event.target.checked;
+    if (event.target.checked) $("#effectWordText").focus();
   }
 });
 
@@ -1952,10 +2263,16 @@ $("#backHome").addEventListener("click", () => {
 $("#clearAll").addEventListener("click", () => {
   $("#keywordForm").reset();
   renderChipGroup("#sellingPointChips", QUICK_SELLING_POINTS, "sellingPointQuick", ["低糖饭"]);
-  renderBackgroundStyleCards("#backgroundStyleChips", uniqueList([...QUICK_BACKGROUND_STYLES, ...knowledgeItems("sceneTemplates").map((item) => item.name)]), ["玻璃花瓣"]);
-  renderChipGroup("#toneChips", QUICK_TONES, "toneQuick", ["浅金"]);
+  renderBackgroundStyleCards("#backgroundStyleChips", uniqueList([...QUICK_BACKGROUND_SCENES, ...backgroundModuleItems("scene").map((item) => item.name)]), ["现代厨房"]);
+  renderChoiceGroup("#backgroundMaterialChips", uniqueList([...QUICK_BACKGROUND_MATERIALS, ...backgroundModuleItems("material").map((item) => item.name)]), "backgroundMaterialQuick", "无材质");
+  renderChoiceGroup("#toneChips", uniqueList([...QUICK_TONES, ...backgroundModuleItems("color").map((item) => item.name)]), "toneQuick", "米白");
+  renderChoiceGroup("#backgroundDecorationChips", uniqueList([...QUICK_BACKGROUND_DECORATIONS, ...backgroundModuleItems("decoration").map((item) => item.name)]), "backgroundDecorationQuick", "无");
+  renderChoiceGroup("#lightingEffectChips", uniqueList([...QUICK_LIGHTING_EFFECTS, ...backgroundModuleItems("lighting").map((item) => item.name)]), "lightingEffectQuick", "柔和漫反射");
   renderChoiceGroup("#mainLayoutChips", MAIN_LAYOUT_RULES, "mainLayoutQuick", "右侧产品占位");
   renderChipGroup("#assistLayoutChips", ASSIST_LAYOUT_RULES, "assistLayoutQuick", ["底部预留价格区", "右下角留白"]);
+  $("#effectWordEnabled").checked = false;
+  $("#effectWordText").value = "";
+  $("#effectWordField").hidden = true;
   $("#platform").value = "京东";
   document.querySelector("input[name='purpose'][value='主图']").checked = true;
   updateModeUI();
@@ -1989,8 +2306,12 @@ $("#loadDemo").addEventListener("click", async () => {
   document.querySelector("input[name='purpose'][value='底图']").checked = true;
   syncChipsFromData({
     points: ["专业沥糖釜", "0涂层健康内胆"],
-    backgroundStyles: ["玻璃花瓣"],
-    tone: "浅金",
+    backgroundScene: "现代厨房",
+    backgroundStyles: ["现代厨房"],
+    backgroundMaterial: "玻璃",
+    backgroundDecoration: "玻璃花瓣",
+    lightingEffect: "柔和漫反射",
+    tone: "米白",
     mainLayoutRule: "右侧产品占位",
     assistLayoutRules: ["底部预留价格区", "右下角留白"],
     layoutRules: ["右侧产品占位", "底部预留价格区", "右下角留白"],
@@ -1998,6 +2319,9 @@ $("#loadDemo").addEventListener("click", async () => {
   $("#bgStyleCustom").value = "";
   $("#bgToneCustom").value = "";
   $("#bgSpecial").value = "右下角必须留白，不能出现配件，背景要通透";
+  $("#effectWordEnabled").checked = false;
+  $("#effectWordText").value = "";
+  $("#effectWordField").hidden = true;
   enterWorkspace("底图");
   currentData = getFormData();
   const results = await buildResults(currentData);
